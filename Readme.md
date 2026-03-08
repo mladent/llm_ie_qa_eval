@@ -54,11 +54,15 @@ Metrics Report
 
 `pip install -r requirements.txt`
 
-## Set API keys:
+### Set API keys:
+
+Copy `.env-template` to `.env` and add your API keys:
+
+```bash
+cp .env-template .env
+# Edit .env and add your actual API keys
 ```
-export OPENAI_API_KEY=...
-export GEMINI_API_KEY=...
-```
+
 ### Run evaluation:
 
 `python run_evaluation.py`
