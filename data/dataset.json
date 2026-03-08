@@ -1,0 +1,20 @@
+[
+  {
+    "id": "doc1",
+    "text": "We train a BERT model for named entity recognition using the CoNLL dataset.",
+    "gold": {
+      "methods": ["BERT"],
+      "tasks": ["named entity recognition"],
+      "datasets": ["CoNLL"]
+    }
+  },
+  {
+    "id": "doc2",
+    "text": "Our approach applies graph neural networks to relation extraction.",
+    "gold": {
+      "methods": ["graph neural networks"],
+      "tasks": ["relation extraction"],
+      "datasets": []
+    }
+  }
+]

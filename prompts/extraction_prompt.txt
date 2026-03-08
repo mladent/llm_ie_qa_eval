@@ -1,0 +1,11 @@
+Extract scientific entities from the following text.
+
+Return JSON with fields:
+- methods
+- tasks
+- datasets
+
+Only return JSON.
+
+Text:
+{text}
