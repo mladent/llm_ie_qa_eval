@@ -102,6 +102,80 @@ Responsibilities:
 2. Support local MLflow by default.
 3. Expose one normalized config object for the rest of the pipeline.
 
+### 2.2.1 Add a settings-file schema
+
+Use a single experiment settings file (YAML) as the baseline configuration, then allow CLI and environment overrides.
+
+Suggested file:
+
+- `config/eval_settings.yaml`
+
+Suggested schema:
+
+```yaml
+experiment:
+   name: "llm-json-eval"
+   seed: 42
+   output_dir: "outputs"
+   num_runs: 5
+
+data:
+   dataset_path: "data/dataset.json"
+   prompt_path: "prompts/extraction_prompt.txt"
+   prompt_id: "extraction-v1"
+
+model:
+   provider: "openai" # openai | gemini
+   model: "gpt-4o-mini"
+   temperature: 0.2
+   top_p: 1.0
+   max_tokens: 2048
+
+execution:
+   max_retries: 3
+   retry_backoff_seconds: 2
+   timeout_seconds: 60
+   continue_on_error: true
+
+tracking:
+   enable_mlflow: true
+   tracking_uri: "file:./mlruns"
+   tags:
+      project: "llm_ie_qa_eval"
+      corpus: "default"
+
+exports:
+   write_jsonl: true
+   write_csv: true
+   write_parquet: true
+```
+
+Required behavior:
+
+1. Validate required keys and value ranges at load time.
+2. Fail fast with actionable error messages when config is invalid.
+3. Support one command-line option to choose the settings file path, for example `--config`.
+
+### 2.2.2 Define config precedence and override rules
+
+Use this precedence order (highest to lowest):
+
+1. CLI arguments
+2. Environment variables
+3. Settings file (`config/eval_settings.yaml`)
+4. Internal defaults
+
+Recommended environment variable mapping examples:
+
+- `LIE_PROVIDER`
+- `LIE_MODEL`
+- `LIE_NUM_RUNS`
+- `LIE_DATASET_PATH`
+- `LIE_PROMPT_PATH`
+- `LIE_OUTPUT_DIR`
+- `LIE_ENABLE_MLFLOW`
+- `LIE_TRACKING_URI`
+
 ### 2.3 Record provenance metadata
 
 Every experiment should capture:
