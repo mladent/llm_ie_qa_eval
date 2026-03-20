@@ -1,6 +1,7 @@
 from providers.openai_provider import run_openai
 from providers.gemini_provider import run_gemini
 
+
 def run_extraction(provider, prompt):
 
     if provider == "openai":
