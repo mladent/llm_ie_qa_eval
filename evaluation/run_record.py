@@ -44,8 +44,10 @@ class ExperimentProvenance:
     experiment_id: str
     experiment_name: str
     dataset_path: str
+    dataset_sha256: str
     prompt_path: str
     prompt_id: str
+    prompt_sha256: str
     provider: str
     model: str
     evaluation_timestamp: str

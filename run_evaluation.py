@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import time
 from collections import defaultdict
@@ -8,6 +9,7 @@ from typing import Optional
 from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, EvalConfig, load_eval_config
+from evaluation.dataset_validation import validate_dataset_shape
 from evaluation.analysis_questions import build_phase8_analysis
 from evaluation.metrics import (
     compute_corpus_aggregate,
@@ -33,6 +35,14 @@ def load_prompt(prompt_path):
 
     with open(prompt_path, encoding="utf-8") as f:
         return f.read()
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def parse_args():
@@ -140,11 +150,14 @@ def main():
 
     with open(config.data.dataset_path, encoding="utf-8") as dataset_file:
         dataset = json.load(dataset_file)
+    validate_dataset_shape(dataset)
 
     prompt_template = load_prompt(config.data.prompt_path)
     experiment_id = f"exp-{uuid4().hex[:12]}"
     dataset_id = str(Path(config.data.dataset_path).resolve())
+    dataset_sha256 = sha256_file(Path(config.data.dataset_path).resolve())
     prompt_path = str(Path(config.data.prompt_path).resolve())
+    prompt_sha256 = sha256_text(prompt_template)
     prompt_id = config.data.prompt_id
     evaluation_timestamp = utc_now_iso()
 
@@ -152,8 +165,10 @@ def main():
         experiment_id=experiment_id,
         experiment_name=config.experiment.name,
         dataset_path=dataset_id,
+        dataset_sha256=dataset_sha256,
         prompt_path=prompt_path,
         prompt_id=prompt_id,
+        prompt_sha256=prompt_sha256,
         provider=config.model.provider,
         model=config.model.model,
         evaluation_timestamp=evaluation_timestamp,
@@ -197,7 +212,9 @@ def main():
             "provider": config.model.provider,
             "model": config.model.model,
             "prompt_id": prompt_id,
+            "prompt_sha256": prompt_sha256,
             "dataset_id": dataset_id,
+            "dataset_sha256": dataset_sha256,
             "dataset_path": config.data.dataset_path,
             "prompt_path": config.data.prompt_path,
             "num_runs": config.experiment.num_runs,
@@ -357,7 +374,9 @@ def main():
     print("Model:", config.model.model)
     print("Dataset:", dataset_id)
     print("Prompt ID:", prompt_id)
+    print("Prompt SHA256:", prompt_sha256)
     print("Prompt Path:", prompt_path)
+    print("Dataset SHA256:", dataset_sha256)
     print("Evaluation Timestamp:", evaluation_timestamp)
     print("Git Commit Hash:", provenance.git_commit_hash)
     print("Provenance Artifact:", str(provenance_path.resolve()))
