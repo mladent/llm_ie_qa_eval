@@ -1,25 +1,54 @@
+import argparse
 import json
 from pathlib import Path
 from uuid import uuid4
 
+from config_loader import DEFAULT_SETTINGS_PATH, load_eval_config
 from extraction.extractor import run_extraction
 from evaluation.metrics import compute_metrics
 from evaluation.run_record import CanonicalRunRecord, utc_now_iso
 
 
-def load_prompt():
+def load_prompt(prompt_path):
 
-    with open("prompts/extraction_prompt.txt") as f:
+    with open(prompt_path, encoding="utf-8") as f:
         return f.read()
 
 
-def main(provider="openai"):
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run JSON extraction evaluation experiments.")
+    parser.add_argument("--config", default=DEFAULT_SETTINGS_PATH)
+    parser.add_argument("--provider")
+    parser.add_argument("--model")
+    parser.add_argument("--dataset-path")
+    parser.add_argument("--prompt-path")
+    parser.add_argument("--prompt-id")
+    parser.add_argument("--num-runs", type=int)
+    parser.add_argument("--output-dir")
+    parser.add_argument("--experiment-name")
+    parser.add_argument("--tracking-uri")
+    parser.add_argument("--enable-mlflow", action="store_true", default=None)
+    parser.add_argument("--disable-mlflow", action="store_false", dest="enable_mlflow")
+    parser.add_argument("--max-retries", type=int)
+    parser.add_argument("--retry-backoff", type=int)
+    parser.add_argument("--temperature", type=float)
+    parser.add_argument("--top-p", type=float)
+    parser.add_argument("--max-tokens", type=int)
+    return parser.parse_args()
 
-    dataset = json.load(open("data/dataset.json"))
-    prompt_template = load_prompt()
+
+def main():
+
+    args = parse_args()
+    config = load_eval_config(args)
+
+    with open(config.data.dataset_path, encoding="utf-8") as dataset_file:
+        dataset = json.load(dataset_file)
+
+    prompt_template = load_prompt(config.data.prompt_path)
     experiment_id = f"exp-{uuid4().hex[:12]}"
-    dataset_id = str(Path("data/dataset.json").resolve())
-    prompt_id = str(Path("prompts/extraction_prompt.txt").resolve())
+    dataset_id = str(Path(config.data.dataset_path).resolve())
+    prompt_id = config.data.prompt_id
 
     run_records = []
 
@@ -27,7 +56,11 @@ def main(provider="openai"):
 
         prompt = prompt_template.replace("{text}", doc["text"])
 
-        extraction_result = run_extraction(provider, prompt)
+        extraction_result = run_extraction(
+            config.model.provider,
+            prompt,
+            model=config.model.model,
+        )
         prediction = extraction_result["parsed_output_json"]
 
         metrics = compute_metrics(prediction, doc["gold"])
@@ -76,10 +109,19 @@ def main(provider="openai"):
 
     print("\n=== FINAL RESULTS ===")
     print("Experiment ID:", experiment_id)
+    print("Experiment Name:", config.experiment.name)
+    print("Provider:", config.model.provider)
+    print("Model:", config.model.model)
+    print("Dataset:", dataset_id)
+    print("Prompt ID:", prompt_id)
+    print("Prompt Path:", str(Path(config.data.prompt_path).resolve()))
+    print("Tracking URI:", config.tracking.tracking_uri)
+    print("MLflow Enabled:", config.tracking.enable_mlflow)
+    print("Configured num_runs:", config.experiment.num_runs)
     print("Precision:", avg_precision)
     print("Recall:", avg_recall)
     print("F1:", avg_f1)
 
 
 if __name__ == "__main__":
-    main("openai")
+    main()
