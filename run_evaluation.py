@@ -104,6 +104,9 @@ def main():
             config.model.provider,
             prompt,
             model=config.model.model,
+            temperature=config.model.temperature,
+            top_p=config.model.top_p,
+            max_tokens=config.model.max_tokens,
         )
         prediction = extraction_result["parsed_output_json"]
 
