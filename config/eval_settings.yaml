@@ -24,7 +24,7 @@ execution:
 
 tracking:
   enable_mlflow: true
-  tracking_uri: "file:./mlruns"
+  tracking_uri: "sqlite:///mlflow.db"
   tags:
     project: "llm_ie_qa_eval"
     corpus: "default"

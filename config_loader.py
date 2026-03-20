@@ -39,7 +39,7 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "tracking": {
         "enable_mlflow": True,
-        "tracking_uri": "file:./mlruns",
+        "tracking_uri": "sqlite:///mlflow.db",
         "tags": {
             "project": "llm_ie_qa_eval",
             "corpus": "default",
