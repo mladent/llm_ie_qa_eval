@@ -391,7 +391,7 @@ Artifacts:
 - aggregate CSV or Parquet tables
 - config snapshot
 
-## Phase 8: Enable Corpus-Level and Within-Document Analysis
+## Phase 8: Enable Corpus-Level and Within-Document Analysis ✅
 
 ### 8.1 Corpus-level questions the system must answer
 
@@ -410,7 +410,7 @@ The exported tables and MLflow logs should make it easy to answer:
 3. Which fields are the least stable across runs?
 4. Are unstable outputs correlated with cost, latency, or provider failures?
 
-## Phase 9: Dataset and Prompt Governance
+## Phase 9: Dataset and Prompt Governance ✅
 
 ### 9.1 Validate the dataset shape
 
