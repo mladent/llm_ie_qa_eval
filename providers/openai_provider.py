@@ -9,16 +9,22 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def run_openai(prompt, model="gpt-4o-mini"):
+def run_openai(
+    prompt,
+    model="gpt-4o-mini",
+    temperature=0.0,
+    top_p=1.0,
+    max_tokens=2048,
+):
 
     started_at = time.perf_counter()
 
     response = client.chat.completions.create(
         model=model,
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
     )
     latency_ms = (time.perf_counter() - started_at) * 1000
 
@@ -39,8 +45,8 @@ def run_openai(prompt, model="gpt-4o-mini"):
             parse_status = "success"
         else:
             error_message = "Parsed JSON is not an object"
-    except Exception as exc:
-        error_message = str(exc)
+    except json.JSONDecodeError as exc:
+        error_message = f"JSON decode error: {exc}"
 
     return {
         "provider": "openai",
@@ -53,4 +59,9 @@ def run_openai(prompt, model="gpt-4o-mini"):
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "estimated_cost": None,
+        "model_params_used": {
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": max_tokens,
+        },
     }
