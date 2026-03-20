@@ -1,15 +1,28 @@
 import argparse
 import json
 import time
+from collections import defaultdict
 from pathlib import Path
 import subprocess
 from typing import Optional
 from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, EvalConfig, load_eval_config
-from extraction.extractor import run_extraction
-from evaluation.metrics import compute_metrics
+from evaluation.metrics import (
+    compute_corpus_aggregate,
+    compute_document_aggregate,
+    compute_metrics,
+)
 from evaluation.run_record import CanonicalRunRecord, ExperimentProvenance, utc_now_iso
+from extraction.extractor import run_extraction
+from persistence import (
+    append_run_record,
+    ensure_experiment_dir,
+    write_config_snapshot,
+    write_corpus_summary,
+    write_document_aggregates,
+    write_provenance,
+)
 
 
 def load_prompt(prompt_path):
@@ -53,26 +66,6 @@ def get_git_commit_hash() -> str | None:
         return result.stdout.strip() or None
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
-
-
-def persist_provenance(provenance: ExperimentProvenance, output_dir: str) -> str:
-    """Persist experiment provenance metadata to an analysis-friendly JSON artifact."""
-
-    experiment_dir = Path(output_dir) / "experiments" / provenance.experiment_id
-    experiment_dir.mkdir(parents=True, exist_ok=True)
-    provenance_path = experiment_dir / "provenance.json"
-
-    with provenance_path.open("w", encoding="utf-8") as provenance_file:
-        json.dump(provenance.to_dict(), provenance_file, ensure_ascii=True, indent=2)
-
-    return str(provenance_path.resolve())
-
-
-def _append_run_record(record: CanonicalRunRecord, jsonl_path: Path) -> None:
-    """Immediately append one run record to JSONL so partial failures do not lose completed work."""
-
-    with jsonl_path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record.to_dict(), ensure_ascii=True) + "\n")
 
 
 def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
@@ -162,13 +155,18 @@ def main():
         evaluation_timestamp=evaluation_timestamp,
         git_commit_hash=get_git_commit_hash(),
     )
-    provenance_path = persist_provenance(provenance, config.experiment.output_dir)
 
-    # Set up run output paths before the loop so records can be appended immediately.
-    experiment_dir = Path(config.experiment.output_dir) / "experiments" / experiment_id
-    experiment_dir.mkdir(parents=True, exist_ok=True)
+    experiment_dir = ensure_experiment_dir(config.experiment.output_dir, experiment_id)
+    provenance_path = experiment_dir / "provenance.json"
+    config_snapshot_path = experiment_dir / "config.json"
     runs_jsonl_path = experiment_dir / "runs.jsonl"
     failures_jsonl_path = experiment_dir / "failures.jsonl"
+    document_aggregates_csv_path = experiment_dir / "document_aggregates.csv"
+    document_aggregates_parquet_path = experiment_dir / "document_aggregates.parquet"
+    corpus_summary_path = experiment_dir / "corpus_summary.json"
+
+    write_provenance(provenance_path, provenance)
+    write_config_snapshot(config_snapshot_path, config)
 
     run_records: list[CanonicalRunRecord] = []
     total_failures = 0
@@ -198,8 +196,9 @@ def main():
                     error_message=error_msg,
                 )
                 run_records.append(failed_record)
-                _append_run_record(failed_record, runs_jsonl_path)
-                _append_run_record(failed_record, failures_jsonl_path)
+                if config.exports.write_jsonl:
+                    append_run_record(runs_jsonl_path, failed_record)
+                    append_run_record(failures_jsonl_path, failed_record)
                 if not config.execution.continue_on_error:
                     raise
                 continue
@@ -233,12 +232,46 @@ def main():
 
             run_records.append(run_record)
             # 4.1 — persist each run immediately
-            _append_run_record(run_record, runs_jsonl_path)
+            if config.exports.write_jsonl:
+                append_run_record(runs_jsonl_path, run_record)
 
             print(f"  Parse status: {run_record.parse_status}")
             print(f"  Metrics: precision={run_record.precision:.3f}  "
                   f"recall={run_record.recall:.3f}  f1={run_record.f1:.3f}  "
                   f"exact_match={run_record.exact_match_with_gold}")
+
+    # Phase 6.2/6.3 - aggregate artifact persistence for analysis.
+    by_doc: dict[str, list[CanonicalRunRecord]] = defaultdict(list)
+    for record in run_records:
+        by_doc[record.document_id].append(record)
+
+    document_aggregates = [
+        compute_document_aggregate(by_doc[doc_id])
+        for doc_id in sorted(by_doc)
+    ]
+
+    corpus_aggregate = compute_corpus_aggregate(
+        run_records,
+        experiment_id=experiment_id,
+        provider=config.model.provider,
+        model=config.model.model,
+        prompt_id=prompt_id,
+        dataset_id=dataset_id,
+        timestamp=evaluation_timestamp,
+    )
+
+    export_status = write_document_aggregates(
+        document_aggregates,
+        document_aggregates_csv_path,
+        document_aggregates_parquet_path,
+        write_csv=config.exports.write_csv,
+        write_parquet=config.exports.write_parquet,
+    )
+    write_corpus_summary(
+        corpus_summary_path,
+        corpus_aggregate,
+        total_failures=total_failures,
+    )
 
     successful_records = [r for r in run_records if r.parse_status not in ("provider_error",)]
     avg_precision = sum(r.precision for r in successful_records) / len(successful_records) if successful_records else 0.0
@@ -256,8 +289,16 @@ def main():
     print("Prompt Path:", prompt_path)
     print("Evaluation Timestamp:", evaluation_timestamp)
     print("Git Commit Hash:", provenance.git_commit_hash)
-    print("Provenance Artifact:", provenance_path)
-    print("Runs JSONL:", str(runs_jsonl_path.resolve()))
+    print("Provenance Artifact:", str(provenance_path.resolve()))
+    print("Config Snapshot:", str(config_snapshot_path.resolve()))
+    if config.exports.write_jsonl:
+        print("Runs JSONL:", str(runs_jsonl_path.resolve()))
+        print("Failures JSONL:", str(failures_jsonl_path.resolve()))
+    if export_status["csv_written"]:
+        print("Document Aggregates CSV:", str(document_aggregates_csv_path.resolve()))
+    if export_status["parquet_written"]:
+        print("Document Aggregates Parquet:", str(document_aggregates_parquet_path.resolve()))
+    print("Corpus Summary:", str(corpus_summary_path.resolve()))
     print("Tracking URI:", config.tracking.tracking_uri)
     print("MLflow Enabled:", config.tracking.enable_mlflow)
     print(f"Total runs: {len(run_records)}  "
