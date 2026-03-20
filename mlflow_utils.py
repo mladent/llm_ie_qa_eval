@@ -142,8 +142,8 @@ class MLflowTracker:
             "corpus_failure_rate": float(total_failures / aggregate.run_count) if aggregate.run_count else 0.0,
         }
 
-        cleaned = {
-            key: value
+        cleaned: Dict[str, float] = {
+            key: float(value)
             for key, value in metrics.items()
             if not (isinstance(value, float) and (math.isnan(value) or math.isinf(value)))
         }
