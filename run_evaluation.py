@@ -8,6 +8,7 @@ from typing import Optional
 from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, EvalConfig, load_eval_config
+from evaluation.analysis_questions import build_phase8_analysis
 from evaluation.metrics import (
     compute_corpus_aggregate,
     compute_document_aggregate,
@@ -22,6 +23,8 @@ from persistence import (
     write_config_snapshot,
     write_corpus_summary,
     write_document_aggregates,
+    write_json_artifact,
+    write_rows_csv,
     write_provenance,
 )
 
@@ -165,6 +168,10 @@ def main():
     document_aggregates_csv_path = experiment_dir / "document_aggregates.csv"
     document_aggregates_parquet_path = experiment_dir / "document_aggregates.parquet"
     corpus_summary_path = experiment_dir / "corpus_summary.json"
+    phase8_summary_path = experiment_dir / "phase8_analysis_summary.json"
+    phase8_doc_table_path = experiment_dir / "phase8_document_analysis.csv"
+    phase8_field_table_path = experiment_dir / "phase8_field_stability.csv"
+    phase8_score_table_path = experiment_dir / "phase8_score_variation.csv"
 
     write_provenance(provenance_path, provenance)
     write_config_snapshot(config_snapshot_path, config)
@@ -311,6 +318,12 @@ def main():
             total_failures=total_failures,
         )
 
+        phase8_analysis = build_phase8_analysis(run_records, document_aggregates)
+        write_json_artifact(phase8_summary_path, phase8_analysis)
+        write_rows_csv(phase8_doc_table_path, phase8_analysis["tables"]["document_analysis"])
+        write_rows_csv(phase8_field_table_path, phase8_analysis["tables"]["field_stability"])
+        write_rows_csv(phase8_score_table_path, phase8_analysis["tables"]["score_variation"])
+
         tracker.log_document_aggregates(document_aggregates)
         tracker.log_corpus_aggregate(corpus_aggregate, total_failures=total_failures)
         tracker.log_artifacts(
@@ -322,6 +335,10 @@ def main():
                 failures_jsonl_path,
                 document_aggregates_csv_path,
                 document_aggregates_parquet_path,
+                phase8_summary_path,
+                phase8_doc_table_path,
+                phase8_field_table_path,
+                phase8_score_table_path,
             ]
         )
     finally:
@@ -353,6 +370,10 @@ def main():
     if export_status["parquet_written"]:
         print("Document Aggregates Parquet:", str(document_aggregates_parquet_path.resolve()))
     print("Corpus Summary:", str(corpus_summary_path.resolve()))
+    print("Phase 8 Summary:", str(phase8_summary_path.resolve()))
+    print("Phase 8 Document Analysis:", str(phase8_doc_table_path.resolve()))
+    print("Phase 8 Field Stability:", str(phase8_field_table_path.resolve()))
+    print("Phase 8 Score Variation:", str(phase8_score_table_path.resolve()))
     print("Tracking URI:", config.tracking.tracking_uri)
     print("MLflow Enabled:", tracker_ctx.enabled)
     if tracker_ctx.enabled:
