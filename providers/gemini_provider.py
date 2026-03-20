@@ -1,19 +1,18 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
 def run_gemini(prompt, model="gemini-1.5-pro"):
 
-    model = genai.GenerativeModel(model)
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    response = client.models.generate_content(model=model, contents=prompt)
 
-    response = model.generate_content(prompt)
-
-    text = response.text
+    text = getattr(response, "text", None)
+    if not text:
+        text = json.dumps({"error": "Gemini response had no text"})
 
     try:
         return json.loads(text)
