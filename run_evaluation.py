@@ -1,12 +1,13 @@
 import argparse
 import json
 from pathlib import Path
+import subprocess
 from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, load_eval_config
 from extraction.extractor import run_extraction
 from evaluation.metrics import compute_metrics
-from evaluation.run_record import CanonicalRunRecord, utc_now_iso
+from evaluation.run_record import CanonicalRunRecord, ExperimentProvenance, utc_now_iso
 
 
 def load_prompt(prompt_path):
@@ -37,6 +38,34 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_git_commit_hash() -> str | None:
+    """Return current git commit hash, or None when unavailable."""
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip() or None
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def persist_provenance(provenance: ExperimentProvenance, output_dir: str) -> str:
+    """Persist experiment provenance metadata to an analysis-friendly JSON artifact."""
+
+    experiment_dir = Path(output_dir) / "experiments" / provenance.experiment_id
+    experiment_dir.mkdir(parents=True, exist_ok=True)
+    provenance_path = experiment_dir / "provenance.json"
+
+    with provenance_path.open("w", encoding="utf-8") as provenance_file:
+        json.dump(provenance.to_dict(), provenance_file, ensure_ascii=True, indent=2)
+
+    return str(provenance_path.resolve())
+
+
 def main():
 
     args = parse_args()
@@ -48,7 +77,22 @@ def main():
     prompt_template = load_prompt(config.data.prompt_path)
     experiment_id = f"exp-{uuid4().hex[:12]}"
     dataset_id = str(Path(config.data.dataset_path).resolve())
+    prompt_path = str(Path(config.data.prompt_path).resolve())
     prompt_id = config.data.prompt_id
+    evaluation_timestamp = utc_now_iso()
+
+    provenance = ExperimentProvenance(
+        experiment_id=experiment_id,
+        experiment_name=config.experiment.name,
+        dataset_path=dataset_id,
+        prompt_path=prompt_path,
+        prompt_id=prompt_id,
+        provider=config.model.provider,
+        model=config.model.model,
+        evaluation_timestamp=evaluation_timestamp,
+        git_commit_hash=get_git_commit_hash(),
+    )
+    provenance_path = persist_provenance(provenance, config.experiment.output_dir)
 
     run_records = []
 
@@ -114,7 +158,10 @@ def main():
     print("Model:", config.model.model)
     print("Dataset:", dataset_id)
     print("Prompt ID:", prompt_id)
-    print("Prompt Path:", str(Path(config.data.prompt_path).resolve()))
+    print("Prompt Path:", prompt_path)
+    print("Evaluation Timestamp:", evaluation_timestamp)
+    print("Git Commit Hash:", provenance.git_commit_hash)
+    print("Provenance Artifact:", provenance_path)
     print("Tracking URI:", config.tracking.tracking_uri)
     print("MLflow Enabled:", config.tracking.enable_mlflow)
     print("Configured num_runs:", config.experiment.num_runs)

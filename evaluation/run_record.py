@@ -37,6 +37,24 @@ class CanonicalRunRecord:
         return asdict(self)
 
 
+@dataclass
+class ExperimentProvenance:
+    """Experiment-level provenance metadata for reproducibility."""
+
+    experiment_id: str
+    experiment_name: str
+    dataset_path: str
+    prompt_path: str
+    prompt_id: str
+    provider: str
+    model: str
+    evaluation_timestamp: str
+    git_commit_hash: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 def utc_now_iso() -> str:
     """Return an ISO-8601 UTC timestamp for run metadata."""
 
