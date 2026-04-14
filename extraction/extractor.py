@@ -38,16 +38,22 @@ def run_extraction(
 ) -> Dict[str, Any]:
     """Route extraction to the selected provider and normalize the payload."""
 
-    kwargs = dict(
-        temperature=temperature,
-        top_p=top_p,
-        max_tokens=max_tokens,
-    )
-
     if provider == "openai":
-        result = run_openai(prompt, model=model or "gpt-4o-mini", **kwargs)
+        result = run_openai(
+            prompt,
+            model=model or "gpt-4o-mini",
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+        )
     elif provider == "gemini":
-        result = run_gemini(prompt, model=model or "gemini-1.5-pro", **kwargs)
+        result = run_gemini(
+            prompt,
+            model=model or "gemini-1.5-pro",
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+        )
     else:
         raise ValueError(
             f"Unknown provider '{provider}'. Supported values: 'openai', 'gemini'."
