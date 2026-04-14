@@ -43,11 +43,15 @@ class ExperimentProvenance:
 
     experiment_id: str
     experiment_name: str
+    input_mode: str
     dataset_path: str
     dataset_sha256: str
     prompt_path: str
     prompt_id: str
     prompt_sha256: str
+    document_count: int
+    project_config_path: Optional[str]
+    project_spec_sha256: Optional[str]
     provider: str
     model: str
     evaluation_timestamp: str
