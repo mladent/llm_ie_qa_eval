@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 import subprocess
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, EvalConfig, load_eval_config
@@ -43,6 +43,12 @@ def sha256_text(text: str) -> str:
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def sha256_json(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=True, sort_keys=True).encode("utf-8")
+    ).hexdigest()
 
 
 def parse_args():
@@ -143,19 +149,75 @@ def _make_failed_run_record(
     )
 
 
+def _load_dataset_from_project_spec(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    documents = []
+    manifest_documents = []
+
+    for document in config.data.documents:
+        document_path = Path(document.document_path).resolve()
+        gold_path = Path(document.gold_path).resolve()
+        document_text = document_path.read_text(encoding="utf-8")
+        gold = json.loads(gold_path.read_text(encoding="utf-8"))
+        documents.append({"id": document.id, "text": document_text, "gold": gold})
+        manifest_documents.append(
+            {
+                "id": document.id,
+                "document_path": str(document_path),
+                "document_sha256": sha256_file(document_path),
+                "gold_path": str(gold_path),
+                "gold_sha256": sha256_file(gold_path),
+            }
+        )
+
+    project_manifest = {
+        "project_config_path": str(Path(config.config_path).resolve()),
+        "prompt_path": str(Path(config.data.prompt_path).resolve()),
+        "prompt_id": config.data.prompt_id,
+        "documents": manifest_documents,
+    }
+    return documents, project_manifest
+
+
+def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if config.data.documents:
+        dataset, project_manifest = _load_dataset_from_project_spec(config)
+        validate_dataset_shape(dataset)
+        dataset_id = f"project:{Path(config.config_path).resolve()}"
+        dataset_sha256 = sha256_json(project_manifest)
+        return dataset, {
+            "input_mode": "project",
+            "dataset_id": dataset_id,
+            "dataset_sha256": dataset_sha256,
+            "document_count": len(dataset),
+            "project_manifest": project_manifest,
+            "project_spec_sha256": sha256_file(Path(config.config_path).resolve()),
+        }
+
+    dataset_path = Path(config.data.dataset_path or "").resolve()
+    with dataset_path.open(encoding="utf-8") as dataset_file:
+        dataset = json.load(dataset_file)
+    validate_dataset_shape(dataset)
+    return dataset, {
+        "input_mode": "dataset",
+        "dataset_id": str(dataset_path),
+        "dataset_sha256": sha256_file(dataset_path),
+        "document_count": len(dataset),
+        "project_manifest": None,
+        "project_spec_sha256": None,
+    }
+
+
 def main():
 
     args = parse_args()
     config = load_eval_config(args)
 
-    with open(config.data.dataset_path, encoding="utf-8") as dataset_file:
-        dataset = json.load(dataset_file)
-    validate_dataset_shape(dataset)
+    dataset, runtime_input = _load_runtime_dataset(config)
 
     prompt_template = load_prompt(config.data.prompt_path)
     experiment_id = f"exp-{uuid4().hex[:12]}"
-    dataset_id = str(Path(config.data.dataset_path).resolve())
-    dataset_sha256 = sha256_file(Path(config.data.dataset_path).resolve())
+    dataset_id = runtime_input["dataset_id"]
+    dataset_sha256 = runtime_input["dataset_sha256"]
     prompt_path = str(Path(config.data.prompt_path).resolve())
     prompt_sha256 = sha256_text(prompt_template)
     prompt_id = config.data.prompt_id
@@ -164,11 +226,15 @@ def main():
     provenance = ExperimentProvenance(
         experiment_id=experiment_id,
         experiment_name=config.experiment.name,
+        input_mode=runtime_input["input_mode"],
         dataset_path=dataset_id,
         dataset_sha256=dataset_sha256,
         prompt_path=prompt_path,
         prompt_id=prompt_id,
         prompt_sha256=prompt_sha256,
+        document_count=runtime_input["document_count"],
+        project_config_path=(str(Path(config.config_path).resolve()) if runtime_input["input_mode"] == "project" else None),
+        project_spec_sha256=runtime_input["project_spec_sha256"],
         provider=config.model.provider,
         model=config.model.model,
         evaluation_timestamp=evaluation_timestamp,
@@ -183,6 +249,7 @@ def main():
     document_aggregates_csv_path = experiment_dir / "document_aggregates.csv"
     document_aggregates_parquet_path = experiment_dir / "document_aggregates.parquet"
     corpus_summary_path = experiment_dir / "corpus_summary.json"
+    project_manifest_path = experiment_dir / "project_manifest.json"
     phase8_summary_path = experiment_dir / "phase8_analysis_summary.json"
     phase8_doc_table_path = experiment_dir / "phase8_document_analysis.csv"
     phase8_field_table_path = experiment_dir / "phase8_field_stability.csv"
@@ -190,6 +257,8 @@ def main():
 
     write_provenance(provenance_path, provenance)
     write_config_snapshot(config_snapshot_path, config)
+    if runtime_input["project_manifest"] is not None:
+        write_json_artifact(project_manifest_path, runtime_input["project_manifest"])
 
     tracker = MLflowTracker(
         enabled=config.tracking.enable_mlflow,
@@ -218,6 +287,10 @@ def main():
             "dataset_path": config.data.dataset_path,
             "prompt_path": config.data.prompt_path,
             "num_runs": config.experiment.num_runs,
+            "input_mode": runtime_input["input_mode"],
+            "document_count": runtime_input["document_count"],
+            "project_config_path": provenance.project_config_path,
+            "project_spec_sha256": provenance.project_spec_sha256,
             "max_retries": config.execution.max_retries,
             "retry_backoff_seconds": config.execution.retry_backoff_seconds,
             "temperature": config.model.temperature,
@@ -352,6 +425,7 @@ def main():
                 failures_jsonl_path,
                 document_aggregates_csv_path,
                 document_aggregates_parquet_path,
+                project_manifest_path,
                 phase8_summary_path,
                 phase8_doc_table_path,
                 phase8_field_table_path,
@@ -373,6 +447,8 @@ def main():
     print("Provider:", config.model.provider)
     print("Model:", config.model.model)
     print("Dataset:", dataset_id)
+    print("Input Mode:", runtime_input["input_mode"])
+    print("Document Count:", runtime_input["document_count"])
     print("Prompt ID:", prompt_id)
     print("Prompt SHA256:", prompt_sha256)
     print("Prompt Path:", prompt_path)
@@ -381,6 +457,8 @@ def main():
     print("Git Commit Hash:", provenance.git_commit_hash)
     print("Provenance Artifact:", str(provenance_path.resolve()))
     print("Config Snapshot:", str(config_snapshot_path.resolve()))
+    if runtime_input["project_manifest"] is not None:
+        print("Project Manifest:", str(project_manifest_path.resolve()))
     if config.exports.write_jsonl:
         print("Runs JSONL:", str(runs_jsonl_path.resolve()))
         print("Failures JSONL:", str(failures_jsonl_path.resolve()))

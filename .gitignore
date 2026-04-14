@@ -35,3 +35,6 @@ Thumbs.db
 outputs/
 mlruns/
 mlflow.db
+
+# Local private evaluation project inputs (CVs, gold labels, per-project configs)
+.local/

@@ -1,0 +1,41 @@
+experiment:
+  name: "cv-eval-project"
+  seed: 42
+  output_dir: "outputs"
+  num_runs: 3
+
+data:
+  prompt_path: "prompts/extraction_prompt.txt"
+  prompt_id: "cv-extraction-v1"
+  documents:
+    - id: "cv-001"
+      document_path: "examples/cvs/cv_001.txt"
+      gold_path: "examples/gold/cv_001.json"
+    - id: "cv-002"
+      document_path: "examples/cvs/cv_002.txt"
+      gold_path: "examples/gold/cv_002.json"
+
+model:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.2
+  top_p: 1.0
+  max_tokens: 2048
+
+execution:
+  max_retries: 3
+  retry_backoff_seconds: 2
+  timeout_seconds: 60
+  continue_on_error: true
+
+tracking:
+  enable_mlflow: true
+  tracking_uri: "sqlite:///mlflow.db"
+  tags:
+    project: "llm_ie_qa_eval"
+    corpus: "cv-project"
+
+exports:
+  write_jsonl: true
+  write_csv: true
+  write_parquet: true
