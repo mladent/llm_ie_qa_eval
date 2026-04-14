@@ -71,6 +71,13 @@ Use a single project YAML file as the source of truth for the run. A sample is a
 python run_evaluation.py --config config/project_eval_example.yaml
 ```
 
+To scaffold a private local project from the `.local` template:
+
+```bash
+scripts/new_local_eval_project.sh my-cv-project
+python run_evaluation.py --config .local/eval_projects/my-cv-project/project.yaml
+```
+
 ### Project file shape
 
 The project YAML keeps the run repeatable in one place:
