@@ -9,6 +9,39 @@ from providers.gemini_provider import run_gemini
 _EXPECTED_FIELDS: List[str] = ["methods", "tasks", "datasets"]
 
 
+def normalize_extraction_output(
+    parsed: Dict[str, Any],
+    expected_fields: Optional[List[str]] = None,
+) -> tuple[Optional[Dict[str, List[str]]], Optional[str]]:
+    """Normalize provider output into list[str] values for all expected fields.
+
+    Normalization rules:
+    - missing or null field -> []
+    - string field -> [string]
+    - list field -> list of strings (coerced with str)
+    """
+
+    fields = expected_fields or _EXPECTED_FIELDS
+    normalized: Dict[str, List[str]] = {}
+
+    for field in fields:
+        value = parsed.get(field)
+        if value is None:
+            normalized[field] = []
+            continue
+        if isinstance(value, str):
+            normalized[field] = [value]
+            continue
+        if isinstance(value, list):
+            normalized[field] = [str(item) for item in value if item is not None]
+            continue
+        return None, (
+            f"Field '{field}' must be a list, string, or null, got {type(value).__name__}."
+        )
+
+    return normalized, None
+
+
 def validate_extraction_schema(
     parsed: Dict[str, Any],
     expected_fields: Optional[List[str]] = None,
@@ -66,13 +99,24 @@ def run_extraction(
 
     # 3.4 — explicit schema validation at the normalization boundary
     if result["parse_status"] == "success":
-        schema_error = validate_extraction_schema(
+        normalized_output, normalize_error = normalize_extraction_output(
             result["parsed_output_json"],
             expected_fields=expected_fields,
         )
-        if schema_error:
+        if normalize_error:
             result["parse_status"] = "schema_error"
-            result["error_message"] = schema_error
+            result["error_message"] = normalize_error
             result["parsed_output_json"] = {}
+        else:
+            assert normalized_output is not None
+            result["parsed_output_json"] = normalized_output
+            schema_error = validate_extraction_schema(
+                normalized_output,
+                expected_fields=expected_fields,
+            )
+            if schema_error:
+                result["parse_status"] = "schema_error"
+                result["error_message"] = schema_error
+                result["parsed_output_json"] = {}
 
     return result

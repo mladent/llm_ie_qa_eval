@@ -317,7 +317,7 @@ def main():
     )
 
     run_records: list[CanonicalRunRecord] = []
-    total_failures = 0
+    provider_failures = 0
 
     try:
         # 4.1 — deterministic document order, N repeated calls per document
@@ -336,7 +336,7 @@ def main():
                         runtime_input["extraction_fields"],
                     )
                 except Exception as exc:  # 4.2 — record failure, continue if allowed
-                    total_failures += 1
+                    provider_failures += 1
                     error_msg = str(exc)
                     print(f"  [FAILED] {error_msg}")
                     failed_record = _make_failed_run_record(
@@ -388,6 +388,8 @@ def main():
                 # 4.1 — persist each run immediately
                 if config.exports.write_jsonl:
                     append_run_record(runs_jsonl_path, run_record)
+                    if run_record.parse_status != "success":
+                        append_run_record(failures_jsonl_path, run_record)
                 tracker.log_run_record_metrics(run_record, step=len(run_records) - 1)
 
                 print(f"  Parse status: {run_record.parse_status}")
@@ -422,6 +424,7 @@ def main():
             write_csv=config.exports.write_csv,
             write_parquet=config.exports.write_parquet,
         )
+        total_failures = sum(1 for record in run_records if record.parse_status != "success")
         write_corpus_summary(
             corpus_summary_path,
             corpus_aggregate,
@@ -455,10 +458,11 @@ def main():
     finally:
         tracker.end()
 
-    successful_records = [r for r in run_records if r.parse_status not in ("provider_error",)]
+    successful_records = [r for r in run_records if r.parse_status == "success"]
     avg_precision = sum(r.precision for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_recall = sum(r.recall for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_f1 = sum(r.f1 for r in successful_records) / len(successful_records) if successful_records else 0.0
+    total_failures = sum(1 for r in run_records if r.parse_status != "success")
     failure_rate = total_failures / len(run_records) if run_records else 0.0
 
     print("\n=== FINAL RESULTS ===")
@@ -499,6 +503,7 @@ def main():
     print(f"Total runs: {len(run_records)}  "
           f"(docs={len(dataset)}, num_runs={config.experiment.num_runs})")
     print(f"Failures: {total_failures}  failure_rate={failure_rate:.1%}")
+    print(f"Provider failures: {provider_failures}")
     print(f"Precision: {avg_precision:.4f}")
     print(f"Recall:    {avg_recall:.4f}")
     print(f"F1:        {avg_f1:.4f}")
