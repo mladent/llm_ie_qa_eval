@@ -44,7 +44,13 @@ def test_project_config_run_writes_manifest_and_logs_project_params(
 
     gold_path = tmp_path / "cv1.gold.json"
     gold_path.write_text(
-        json.dumps({"methods": ["Python"], "tasks": ["NLP"], "datasets": []}),
+        json.dumps(
+            {
+                "programming_languages": ["Python"],
+                "programming_tools_skills": ["MLflow"],
+                "human_languages": ["English"],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -94,7 +100,11 @@ def test_project_config_run_writes_manifest_and_logs_project_params(
             "provider": provider,
             "model": model or "gpt-4o-mini",
             "raw_response_text": "{}",
-            "parsed_output_json": {"methods": ["Python"], "tasks": ["NLP"], "datasets": []},
+            "parsed_output_json": {
+                "programming_languages": ["Python"],
+                "programming_tools_skills": ["MLflow"],
+                "human_languages": ["English"],
+            },
             "parse_status": "success",
             "error_message": None,
             "latency_ms": 10.0,
@@ -136,6 +146,11 @@ def test_project_config_run_writes_manifest_and_logs_project_params(
     project_manifest = json.loads(project_manifest_path.read_text(encoding="utf-8"))
     assert project_manifest["project_config_path"] == str(config_path.resolve())
     assert project_manifest["documents"][0]["id"] == "cv1"
+    assert project_manifest["extraction_fields"] == [
+        "programming_languages",
+        "programming_tools_skills",
+        "human_languages",
+    ]
 
     assert tracker.global_params is not None
     assert tracker.global_params["input_mode"] == "project"

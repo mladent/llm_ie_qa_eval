@@ -47,3 +47,11 @@ def test_run_extraction_marks_schema_error(monkeypatch: pytest.MonkeyPatch) -> N
 def test_run_extraction_unknown_provider() -> None:
     with pytest.raises(ValueError):
         run_extraction("unknown", "prompt")
+
+
+def test_validate_extraction_schema_custom_fields() -> None:
+    error = validate_extraction_schema(
+        {"programming_languages": ["Python"], "human_languages": ["English"]},
+        expected_fields=["programming_languages", "human_languages"],
+    )
+    assert error is None
