@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping
 _REQUIRED_GOLD_FIELDS = ("methods", "tasks", "datasets")
 
 
-def validate_dataset_shape(dataset: Any) -> None:
+def validate_dataset_shape(dataset: Any, required_gold_fields: Iterable[str] | None = None) -> None:
     """Fail-fast validation for dataset structure used by the evaluator.
 
     Expected structure:
@@ -26,11 +26,12 @@ def validate_dataset_shape(dataset: Any) -> None:
             "Invalid dataset: no documents found. Provide at least one document entry."
         )
 
+    required_fields = list(required_gold_fields) if required_gold_fields else _infer_gold_fields(dataset)
     for index, doc in enumerate(dataset):
-        _validate_document(doc, index)
+        _validate_document(doc, index, required_fields)
 
 
-def _validate_document(doc: Any, index: int) -> None:
+def _validate_document(doc: Any, index: int, required_fields: Iterable[str]) -> None:
     if not isinstance(doc, Mapping):
         raise ValueError(
             f"Invalid dataset document at index {index}: expected object, got {type(doc).__name__}."
@@ -54,7 +55,15 @@ def _validate_document(doc: Any, index: int) -> None:
             f"Invalid dataset document '{doc['id']}': missing or invalid 'gold' object."
         )
 
-    _validate_gold_fields(doc["id"], doc["gold"], _REQUIRED_GOLD_FIELDS)
+    _validate_gold_fields(doc["id"], doc["gold"], required_fields)
+
+
+def _infer_gold_fields(dataset: list[Any]) -> list[str]:
+    first_doc = dataset[0]
+    first_gold = first_doc.get("gold") if isinstance(first_doc, Mapping) else None
+    if isinstance(first_gold, Mapping) and first_gold:
+        return [str(key) for key in first_gold.keys()]
+    return list(_REQUIRED_GOLD_FIELDS)
 
 
 def _validate_gold_fields(doc_id: Any, gold: Mapping[str, Any], required_fields: Iterable[str]) -> None:

@@ -9,12 +9,16 @@ from providers.gemini_provider import run_gemini
 _EXPECTED_FIELDS: List[str] = ["methods", "tasks", "datasets"]
 
 
-def validate_extraction_schema(parsed: Dict[str, Any]) -> Optional[str]:
+def validate_extraction_schema(
+    parsed: Dict[str, Any],
+    expected_fields: Optional[List[str]] = None,
+) -> Optional[str]:
     """Validate parsed extraction output against the expected schema.
 
     Returns an error message string if validation fails, or None on success.
     """
-    for field in _EXPECTED_FIELDS:
+    fields = expected_fields or _EXPECTED_FIELDS
+    for field in fields:
         if field not in parsed:
             return f"Missing required field '{field}' in extraction output."
         value = parsed[field]
@@ -35,6 +39,7 @@ def run_extraction(
     temperature: float = 0.0,
     top_p: float = 1.0,
     max_tokens: int = 2048,
+    expected_fields: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Route extraction to the selected provider and normalize the payload."""
 
@@ -61,7 +66,10 @@ def run_extraction(
 
     # 3.4 — explicit schema validation at the normalization boundary
     if result["parse_status"] == "success":
-        schema_error = validate_extraction_schema(result["parsed_output_json"])
+        schema_error = validate_extraction_schema(
+            result["parsed_output_json"],
+            expected_fields=expected_fields,
+        )
         if schema_error:
             result["parse_status"] = "schema_error"
             result["error_message"] = schema_error

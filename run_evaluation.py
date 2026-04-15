@@ -88,7 +88,7 @@ def get_git_commit_hash() -> str | None:
         return None
 
 
-def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
+def _call_with_retry(config: EvalConfig, prompt: str, expected_fields: list[str]) -> dict:
     """Call run_extraction with bounded exponential-backoff retries for transient failures."""
 
     last_exc: Optional[Exception] = None
@@ -101,6 +101,7 @@ def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
                 temperature=config.model.temperature,
                 top_p=config.model.top_p,
                 max_tokens=config.model.max_tokens,
+                expected_fields=expected_fields,
             )
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
@@ -149,6 +150,15 @@ def _make_failed_run_record(
     )
 
 
+def _infer_extraction_fields(dataset: list[dict[str, Any]], configured_fields: list[str]) -> list[str]:
+    if configured_fields:
+        return configured_fields
+    first_gold = dataset[0].get("gold", {}) if dataset else {}
+    if isinstance(first_gold, dict) and first_gold:
+        return [str(key) for key in first_gold.keys()]
+    return ["methods", "tasks", "datasets"]
+
+
 def _load_dataset_from_project_spec(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     documents = []
     manifest_documents = []
@@ -181,7 +191,9 @@ def _load_dataset_from_project_spec(config: EvalConfig) -> tuple[list[dict[str, 
 def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if config.data.documents:
         dataset, project_manifest = _load_dataset_from_project_spec(config)
-        validate_dataset_shape(dataset)
+        extraction_fields = _infer_extraction_fields(dataset, config.data.extraction_fields)
+        validate_dataset_shape(dataset, required_gold_fields=extraction_fields)
+        project_manifest["extraction_fields"] = extraction_fields
         dataset_id = f"project:{Path(config.config_path).resolve()}"
         dataset_sha256 = sha256_json(project_manifest)
         return dataset, {
@@ -189,6 +201,7 @@ def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dic
             "dataset_id": dataset_id,
             "dataset_sha256": dataset_sha256,
             "document_count": len(dataset),
+            "extraction_fields": extraction_fields,
             "project_manifest": project_manifest,
             "project_spec_sha256": sha256_file(Path(config.config_path).resolve()),
         }
@@ -196,12 +209,14 @@ def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dic
     dataset_path = Path(config.data.dataset_path or "").resolve()
     with dataset_path.open(encoding="utf-8") as dataset_file:
         dataset = json.load(dataset_file)
-    validate_dataset_shape(dataset)
+    extraction_fields = _infer_extraction_fields(dataset, config.data.extraction_fields)
+    validate_dataset_shape(dataset, required_gold_fields=extraction_fields)
     return dataset, {
         "input_mode": "dataset",
         "dataset_id": str(dataset_path),
         "dataset_sha256": sha256_file(dataset_path),
         "document_count": len(dataset),
+        "extraction_fields": extraction_fields,
         "project_manifest": None,
         "project_spec_sha256": None,
     }
@@ -291,6 +306,7 @@ def main():
             "document_count": runtime_input["document_count"],
             "project_config_path": provenance.project_config_path,
             "project_spec_sha256": provenance.project_spec_sha256,
+            "extraction_fields": ",".join(runtime_input["extraction_fields"]),
             "max_retries": config.execution.max_retries,
             "retry_backoff_seconds": config.execution.retry_backoff_seconds,
             "temperature": config.model.temperature,
@@ -314,7 +330,11 @@ def main():
 
                 # 4.3 — bounded retries with backoff
                 try:
-                    extraction_result = _call_with_retry(config, prompt)
+                    extraction_result = _call_with_retry(
+                        config,
+                        prompt,
+                        runtime_input["extraction_fields"],
+                    )
                 except Exception as exc:  # 4.2 — record failure, continue if allowed
                     total_failures += 1
                     error_msg = str(exc)
@@ -449,6 +469,7 @@ def main():
     print("Dataset:", dataset_id)
     print("Input Mode:", runtime_input["input_mode"])
     print("Document Count:", runtime_input["document_count"])
+    print("Extraction Fields:", ", ".join(runtime_input["extraction_fields"]))
     print("Prompt ID:", prompt_id)
     print("Prompt SHA256:", prompt_sha256)
     print("Prompt Path:", prompt_path)
