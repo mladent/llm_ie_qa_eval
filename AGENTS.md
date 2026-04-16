@@ -5,7 +5,42 @@
 Guidelines for AI agents working on software development tasks.
 Focusing exclusibvely on non-obvious patterns, agent-specific workflows, and integration best practices.
 
+This guide is CLAUDE-first. The decision framework from CLAUDE.md is the primary operating policy for this repository. When guidance conflicts, follow the CLAUDE-first rules below.
+
 Based on research from ["On the Impact of AGENTS.md Files on the Efficiency of AI Coding Agents"](https://arxiv.org/html/2601.20404v1), this guide documents patterns that significantly improve AI agent productivity in software development workflows.
+
+
+---
+
+## 0. CLAUDE-First Operating Rules (Highest Priority)
+
+### 0.1 Think Before Coding
+
+- State assumptions explicitly before implementation when requirements are ambiguous.
+- If multiple interpretations are plausible, present options instead of picking silently.
+- Name uncertainty directly; do not hide confusion.
+- Prefer clarifying questions when ambiguity changes implementation risk.
+
+### 0.2 Simplicity First
+
+- Implement the minimum code needed to satisfy the request.
+- Do not add speculative flexibility, extensibility, or configuration.
+- Do not add features not requested by the user.
+- Avoid over-engineering; rewrite bloated solutions into simpler ones.
+
+### 0.3 Surgical Changes
+
+- Touch only files and code paths required for the task.
+- Do not refactor unrelated code.
+- Match existing style and conventions in touched files.
+- Remove only dead code introduced by your own edits, not pre-existing unrelated code.
+
+### 0.4 Goal-Driven Verification
+
+- Define explicit success criteria before coding.
+- For bug fixes, reproduce the failure path and verify the fix.
+- For feature changes, verify behavior with focused tests and realistic sample data.
+- Treat completion as "implemented + verified", not just "code written".
 
 
 ---
@@ -57,6 +92,7 @@ Based on research from ["On the Impact of AGENTS.md Files on the Efficiency of A
 - Prioritize conciseness and minimal line count
 - Eliminate unnecessary verbosity and redundant operations
 - Use language idioms and built-in functions that reduce code length
+- Never introduce speculative abstractions for single-use logic
 
 **Maintain Essential Practices:**
 - Comments and docstrings (still required for clarity)
@@ -152,6 +188,11 @@ Step 3: Enhancement
   └─ Add unit/comprehensive tests
 ```
 
+**Execution Guardrails:**
+- Stop and clarify if requirements are ambiguous enough to change implementation.
+- Prefer smallest viable change first, then iterate.
+- Do not add optional behavior unless requested.
+
 ### 4.3 Verification Checklist
 
 **After Implementation - Always Run:**
@@ -160,6 +201,7 @@ Step 3: Enhancement
 - [ ] Verify function signatures match usage
 - [ ] Test with realistic sample data
 - [ ] Check edge cases (empty, None, invalid)
+- [ ] Verify outcome against explicit success criteria defined at task start
 
 **Integration Verification:**
 - [ ] New code follows existing patterns
@@ -258,6 +300,8 @@ Avoid global configuration. Pass config objects explicitly as function parameter
 - [ ] Validate inputs at boundaries
 - [ ] Handle errors with context
 - [ ] Add docstrings to public functions
+- [ ] Keep scope minimal: no unrequested features or speculative abstractions
+- [ ] Keep edits surgical: avoid unrelated cleanup/refactors
 
 ### Post-Implementation
 - [ ] No syntax errors (`get_errors()`)
