@@ -1,8 +1,9 @@
 import os
-import json
 import time
 from openai import OpenAI
 from dotenv import load_dotenv
+
+from providers.json_parsing import parse_json_object_text
 
 load_dotenv()
 
@@ -38,15 +39,12 @@ def run_openai(
     parse_status = "parse_error"
     error_message = None
 
-    try:
-        parsed_candidate = json.loads(text)
-        if isinstance(parsed_candidate, dict):
-            parsed_output_json = parsed_candidate
-            parse_status = "success"
-        else:
-            error_message = "Parsed JSON is not an object"
-    except json.JSONDecodeError as exc:
-        error_message = f"JSON decode error: {exc}"
+    parsed_candidate, parse_error = parse_json_object_text(text)
+    if parsed_candidate is not None:
+        parsed_output_json = parsed_candidate
+        parse_status = "success"
+    else:
+        error_message = parse_error
 
     return {
         "provider": "openai",
