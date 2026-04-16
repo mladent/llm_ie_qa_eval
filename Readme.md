@@ -65,7 +65,43 @@ cp .env-template .env
 
 ### Run evaluation:
 
-`python run_evaluation.py`
+Use a single project YAML file as the source of truth for the run. A sample is available at `config/project_eval_example.yaml`.
+
+```bash
+python run_evaluation.py --config config/project_eval_example.yaml
+```
+
+To scaffold a private local project from the `.local` template:
+
+```bash
+scripts/new_local_eval_project.sh my-cv-project
+python run_evaluation.py --config .local/eval_projects/my-cv-project/project.yaml
+```
+
+### Project file shape
+
+The project YAML keeps the run repeatable in one place:
+
+- experiment metadata such as name, output directory, and number of repeated runs
+- prompt file path and prompt identifier
+- one provider/model configuration
+- execution and MLflow tracking settings
+- explicit document entries, where each entry includes:
+   - `id`
+   - `document_path`
+   - `gold_path`
+
+Each `gold_path` file must contain JSON with the evaluator's expected schema:
+
+```json
+{
+   "methods": ["Python"],
+   "tasks": ["Information Extraction"],
+   "datasets": []
+}
+```
+
+If you still want the legacy dataset mode, `data.dataset_path` continues to work. Project mode uses `data.documents` instead.
 
 ### 11. Expected Output
 

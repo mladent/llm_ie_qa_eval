@@ -13,7 +13,7 @@ Extend the current evaluator from a single-pass script into an experiment framew
 5. Separate orchestration, provider normalization, metrics, persistence, and tracking concerns.
 6. Optimize for observability and correctness before adding concurrency.
 
-## Phase 1: Define the Experiment Contract
+## Phase 1: Define the Experiment Contract ✅
 
 ### 1.1 Define a canonical run-level record
 
@@ -70,7 +70,7 @@ Required aggregate fields:
   - `q3`
   - `max`
 
-## Phase 2: Add Configuration and CLI Control
+## Phase 2: Add Configuration and CLI Control ✅
 
 ### 2.1 Refactor [run_evaluation.py](run_evaluation.py)
 
@@ -192,7 +192,7 @@ Reason:
 
 Without provenance, repeated runs cannot be compared reliably over time.
 
-## Phase 3: Normalize Provider Outputs
+## Phase 3: Normalize Provider Outputs ✅
 
 ### 3.1 Update [extractor.py](extraction/extractor.py)
 
@@ -233,7 +233,7 @@ Expected schema example:
 - `tasks: list[str]`
 - `datasets: list[str]`
 
-## Phase 4: Implement Repeated-Run Evaluation
+## Phase 4: Implement Repeated-Run Evaluation ✅
 
 ### 4.1 Add nested evaluation loops in [run_evaluation.py](run_evaluation.py)
 
@@ -260,7 +260,7 @@ Use bounded retries with backoff for transient API failures.
 
 Do not retry indefinitely.
 
-## Phase 5: Extend the Metrics Layer
+## Phase 5: Extend the Metrics Layer ✅
 
 ### 5.1 Preserve and extend [metrics.py](evaluation/metrics.py)
 
@@ -303,7 +303,7 @@ Responsibilities:
 
 This directly supports your goal of measuring variation within repeated runs of the same document.
 
-## Phase 6: Add Persistence for Analysis and Recovery
+## Phase 6: Add Persistence for Analysis and Recovery ✅
 
 ### 6.1 Create a structured output directory
 
@@ -342,7 +342,7 @@ First outputs should be easy to consume in notebooks, pandas, BI tools, and MLfl
 2. JSONL
 3. Parquet if dependency friction stays acceptable
 
-## Phase 7: Integrate MLflow
+## Phase 7: Integrate MLflow ✅
 
 ### 7.1 Add a small MLflow utility layer
 
@@ -391,7 +391,7 @@ Artifacts:
 - aggregate CSV or Parquet tables
 - config snapshot
 
-## Phase 8: Enable Corpus-Level and Within-Document Analysis
+## Phase 8: Enable Corpus-Level and Within-Document Analysis ✅
 
 ### 8.1 Corpus-level questions the system must answer
 
@@ -410,7 +410,7 @@ The exported tables and MLflow logs should make it easy to answer:
 3. Which fields are the least stable across runs?
 4. Are unstable outputs correlated with cost, latency, or provider failures?
 
-## Phase 9: Dataset and Prompt Governance
+## Phase 9: Dataset and Prompt Governance ✅
 
 ### 9.1 Validate the dataset shape
 
@@ -436,7 +436,7 @@ The same framework should support:
 
 That means the run schema and metric exports should stay domain-agnostic.
 
-## Phase 10: Add Test Coverage
+## Phase 10: Add Test Coverage ✅
 
 ### 10.1 Add unit tests
 

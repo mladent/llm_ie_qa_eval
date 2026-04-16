@@ -1,0 +1,35 @@
+experiment:
+  name: "llm-json-eval"
+  seed: 42
+  output_dir: "outputs"
+  num_runs: 5
+
+data:
+  dataset_path: "data/dataset.json"
+  prompt_path: "prompts/extraction_prompt.txt"
+  prompt_id: "extraction-v1"
+
+model:
+  provider: "openai" # openai | gemini
+  model: "gpt-4o-mini"
+  temperature: 0.2
+  top_p: 1.0
+  max_tokens: 2048
+
+execution:
+  max_retries: 3
+  retry_backoff_seconds: 2
+  timeout_seconds: 60
+  continue_on_error: true
+
+tracking:
+  enable_mlflow: true
+  tracking_uri: "sqlite:///mlflow.db"
+  tags:
+    project: "llm_ie_qa_eval"
+    corpus: "default"
+
+exports:
+  write_jsonl: true
+  write_csv: true
+  write_parquet: true

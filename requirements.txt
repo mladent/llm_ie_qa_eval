@@ -2,3 +2,6 @@ openai
 google-genai
 pandas
 python-dotenv
+PyYAML
+mlflow
+pytest
