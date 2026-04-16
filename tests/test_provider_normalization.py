@@ -78,6 +78,58 @@ def test_run_extraction_unknown_provider() -> None:
         run_extraction("unknown", "prompt")
 
 
+def test_run_extraction_routes_to_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_gemini(*args, **kwargs):
+        return {
+            "provider": "gemini",
+            "model": "gemini-1.5-pro",
+            "raw_response_text": "{}",
+            "parsed_output_json": {"methods": [], "tasks": [], "datasets": []},
+            "parse_status": "success",
+            "error_message": None,
+            "latency_ms": 10.0,
+            "input_tokens": 1,
+            "output_tokens": 1,
+            "estimated_cost": 0.0,
+            "model_params_used": {},
+        }
+
+    monkeypatch.setattr("extraction.extractor.run_gemini", fake_gemini)
+
+    result = run_extraction("gemini", "prompt")
+
+    assert result["provider"] == "gemini"
+    assert result["parse_status"] == "success"
+
+
+def test_run_extraction_marks_schema_error_after_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_openai(*args, **kwargs):
+        return {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "raw_response_text": "{}",
+            "parsed_output_json": {"methods": ["A"], "tasks": ["T"], "datasets": []},
+            "parse_status": "success",
+            "error_message": None,
+            "latency_ms": 10.0,
+            "input_tokens": 1,
+            "output_tokens": 1,
+            "estimated_cost": 0.0,
+            "model_params_used": {},
+        }
+
+    monkeypatch.setattr("extraction.extractor.run_openai", fake_openai)
+    monkeypatch.setattr(
+        "extraction.extractor.validate_extraction_schema",
+        lambda parsed, expected_fields=None: "forced schema error",
+    )
+
+    result = run_extraction("openai", "prompt")
+
+    assert result["parse_status"] == "schema_error"
+    assert result["parsed_output_json"] == {}
+
+
 def test_validate_extraction_schema_custom_fields() -> None:
     error = validate_extraction_schema(
         {"programming_languages": ["Python"], "human_languages": ["English"]},

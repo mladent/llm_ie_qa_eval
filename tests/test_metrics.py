@@ -7,6 +7,7 @@ from evaluation.metrics import (
     compute_document_aggregate,
     compute_metrics,
     exact_json_match_rate,
+    field_level_match_rate,
     structural_validity_rate,
 )
 from evaluation.run_record import CanonicalRunRecord, utc_now_iso
@@ -106,3 +107,33 @@ def test_corpus_aggregate_shape() -> None:
     assert agg.document_count == 2
     assert agg.run_count == 3
     assert 0.0 <= agg.exact_match_consistency_rate <= 1.0
+
+
+def test_metrics_empty_input_guards() -> None:
+    assert structural_validity_rate([]) == 0.0
+    assert field_level_match_rate([]) == 0.0
+
+    with pytest.raises(ValueError, match="records must not be empty"):
+        compute_document_aggregate([])
+
+    with pytest.raises(ValueError, match="all_records must not be empty"):
+        compute_corpus_aggregate(
+            [],
+            experiment_id="exp-test",
+            provider="openai",
+            model="gpt-4o-mini",
+            prompt_id="prompt-v1",
+            dataset_id="dataset-v1",
+            timestamp=utc_now_iso(),
+        )
+
+
+def test_field_level_match_rate_paths() -> None:
+    one_success = [_record(document_id="doc1", run_index=0, parsed_output_json={"methods": ["A"]})]
+    assert field_level_match_rate(one_success) == 1.0
+
+    two_success = [
+        _record(document_id="doc1", run_index=0, parsed_output_json={"methods": ["A"], "tasks": ["T"]}),
+        _record(document_id="doc1", run_index=1, parsed_output_json={"methods": ["A"], "tasks": ["X"]}),
+    ]
+    assert 0.0 <= field_level_match_rate(two_success) <= 1.0
