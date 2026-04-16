@@ -63,7 +63,15 @@ def test_mocked_repeated_run_persists_outputs_and_handles_failures(
 
     calls = {"n": 0}
 
-    def fake_run_extraction(provider, prompt, model=None, temperature=0.0, top_p=1.0, max_tokens=2048):
+    def fake_run_extraction(
+        provider,
+        prompt,
+        model=None,
+        temperature=0.0,
+        top_p=1.0,
+        max_tokens=2048,
+        expected_fields=None,
+    ):
         calls["n"] += 1
         if calls["n"] == 2:
             raise RuntimeError("simulated provider failure")

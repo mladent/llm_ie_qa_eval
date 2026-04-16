@@ -74,6 +74,7 @@ class DataConfig:
     prompt_path: str
     prompt_id: str
     documents: List[ProjectDocumentConfig]
+    extraction_fields: List[str]
 
 
 @dataclass
@@ -261,6 +262,7 @@ def _validate_config(config: Dict[str, Any]) -> None:
     data_config = config["data"]
     dataset_path_value = data_config.get("dataset_path")
     documents = data_config.get("documents") or []
+    extraction_fields = data_config.get("extraction_fields") or []
 
     if dataset_path_value and documents:
         raise ValueError(
@@ -309,6 +311,12 @@ def _validate_config(config: Dict[str, Any]) -> None:
                     f"Gold file for data.documents[{index}] does not exist: '{gold_path}'."
                 )
 
+    if extraction_fields:
+        if not isinstance(extraction_fields, list):
+            raise ValueError("data.extraction_fields must be a list of field names.")
+        if not all(isinstance(field, str) and field.strip() for field in extraction_fields):
+            raise ValueError("data.extraction_fields must contain non-empty strings.")
+
     prompt_path = Path(config["data"]["prompt_path"])
     if not prompt_path.exists():
         raise ValueError(
@@ -323,6 +331,7 @@ def _build_data_config(data: Dict[str, Any]) -> DataConfig:
         prompt_path=data["prompt_path"],
         prompt_id=data["prompt_id"],
         documents=documents,
+        extraction_fields=[str(field) for field in data.get("extraction_fields", [])],
     )
 
 

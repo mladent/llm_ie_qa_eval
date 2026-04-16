@@ -88,7 +88,7 @@ def get_git_commit_hash() -> str | None:
         return None
 
 
-def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
+def _call_with_retry(config: EvalConfig, prompt: str, expected_fields: list[str]) -> dict:
     """Call run_extraction with bounded exponential-backoff retries for transient failures."""
 
     last_exc: Optional[Exception] = None
@@ -101,6 +101,7 @@ def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
                 temperature=config.model.temperature,
                 top_p=config.model.top_p,
                 max_tokens=config.model.max_tokens,
+                expected_fields=expected_fields,
             )
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
@@ -149,6 +150,15 @@ def _make_failed_run_record(
     )
 
 
+def _infer_extraction_fields(dataset: list[dict[str, Any]], configured_fields: list[str]) -> list[str]:
+    if configured_fields:
+        return configured_fields
+    first_gold = dataset[0].get("gold", {}) if dataset else {}
+    if isinstance(first_gold, dict) and first_gold:
+        return [str(key) for key in first_gold.keys()]
+    return ["methods", "tasks", "datasets"]
+
+
 def _load_dataset_from_project_spec(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     documents = []
     manifest_documents = []
@@ -181,7 +191,9 @@ def _load_dataset_from_project_spec(config: EvalConfig) -> tuple[list[dict[str, 
 def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if config.data.documents:
         dataset, project_manifest = _load_dataset_from_project_spec(config)
-        validate_dataset_shape(dataset)
+        extraction_fields = _infer_extraction_fields(dataset, config.data.extraction_fields)
+        validate_dataset_shape(dataset, required_gold_fields=extraction_fields)
+        project_manifest["extraction_fields"] = extraction_fields
         dataset_id = f"project:{Path(config.config_path).resolve()}"
         dataset_sha256 = sha256_json(project_manifest)
         return dataset, {
@@ -189,6 +201,7 @@ def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dic
             "dataset_id": dataset_id,
             "dataset_sha256": dataset_sha256,
             "document_count": len(dataset),
+            "extraction_fields": extraction_fields,
             "project_manifest": project_manifest,
             "project_spec_sha256": sha256_file(Path(config.config_path).resolve()),
         }
@@ -196,12 +209,14 @@ def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dic
     dataset_path = Path(config.data.dataset_path or "").resolve()
     with dataset_path.open(encoding="utf-8") as dataset_file:
         dataset = json.load(dataset_file)
-    validate_dataset_shape(dataset)
+    extraction_fields = _infer_extraction_fields(dataset, config.data.extraction_fields)
+    validate_dataset_shape(dataset, required_gold_fields=extraction_fields)
     return dataset, {
         "input_mode": "dataset",
         "dataset_id": str(dataset_path),
         "dataset_sha256": sha256_file(dataset_path),
         "document_count": len(dataset),
+        "extraction_fields": extraction_fields,
         "project_manifest": None,
         "project_spec_sha256": None,
     }
@@ -291,6 +306,7 @@ def main():
             "document_count": runtime_input["document_count"],
             "project_config_path": provenance.project_config_path,
             "project_spec_sha256": provenance.project_spec_sha256,
+            "extraction_fields": ",".join(runtime_input["extraction_fields"]),
             "max_retries": config.execution.max_retries,
             "retry_backoff_seconds": config.execution.retry_backoff_seconds,
             "temperature": config.model.temperature,
@@ -301,7 +317,7 @@ def main():
     )
 
     run_records: list[CanonicalRunRecord] = []
-    total_failures = 0
+    provider_failures = 0
 
     try:
         # 4.1 — deterministic document order, N repeated calls per document
@@ -314,9 +330,13 @@ def main():
 
                 # 4.3 — bounded retries with backoff
                 try:
-                    extraction_result = _call_with_retry(config, prompt)
+                    extraction_result = _call_with_retry(
+                        config,
+                        prompt,
+                        runtime_input["extraction_fields"],
+                    )
                 except Exception as exc:  # 4.2 — record failure, continue if allowed
-                    total_failures += 1
+                    provider_failures += 1
                     error_msg = str(exc)
                     print(f"  [FAILED] {error_msg}")
                     failed_record = _make_failed_run_record(
@@ -368,6 +388,8 @@ def main():
                 # 4.1 — persist each run immediately
                 if config.exports.write_jsonl:
                     append_run_record(runs_jsonl_path, run_record)
+                    if run_record.parse_status != "success":
+                        append_run_record(failures_jsonl_path, run_record)
                 tracker.log_run_record_metrics(run_record, step=len(run_records) - 1)
 
                 print(f"  Parse status: {run_record.parse_status}")
@@ -402,6 +424,7 @@ def main():
             write_csv=config.exports.write_csv,
             write_parquet=config.exports.write_parquet,
         )
+        total_failures = sum(1 for record in run_records if record.parse_status != "success")
         write_corpus_summary(
             corpus_summary_path,
             corpus_aggregate,
@@ -435,10 +458,11 @@ def main():
     finally:
         tracker.end()
 
-    successful_records = [r for r in run_records if r.parse_status not in ("provider_error",)]
+    successful_records = [r for r in run_records if r.parse_status == "success"]
     avg_precision = sum(r.precision for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_recall = sum(r.recall for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_f1 = sum(r.f1 for r in successful_records) / len(successful_records) if successful_records else 0.0
+    total_failures = sum(1 for r in run_records if r.parse_status != "success")
     failure_rate = total_failures / len(run_records) if run_records else 0.0
 
     print("\n=== FINAL RESULTS ===")
@@ -449,6 +473,7 @@ def main():
     print("Dataset:", dataset_id)
     print("Input Mode:", runtime_input["input_mode"])
     print("Document Count:", runtime_input["document_count"])
+    print("Extraction Fields:", ", ".join(runtime_input["extraction_fields"]))
     print("Prompt ID:", prompt_id)
     print("Prompt SHA256:", prompt_sha256)
     print("Prompt Path:", prompt_path)
@@ -478,6 +503,7 @@ def main():
     print(f"Total runs: {len(run_records)}  "
           f"(docs={len(dataset)}, num_runs={config.experiment.num_runs})")
     print(f"Failures: {total_failures}  failure_rate={failure_rate:.1%}")
+    print(f"Provider failures: {provider_failures}")
     print(f"Precision: {avg_precision:.4f}")
     print(f"Recall:    {avg_recall:.4f}")
     print(f"F1:        {avg_f1:.4f}")
