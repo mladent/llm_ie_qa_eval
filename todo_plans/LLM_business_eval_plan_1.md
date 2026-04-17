@@ -397,75 +397,106 @@ This pipeline directly feeds:
 
 # 🛠️ 6. Unified execution roadmap (implementation plan)
 
-This section converts the strategy and model above into delivery phases.
+This roadmap is organized for fast implementation and clean future extraction.
 
-## Phase 1: Contract adapter from evaluator outputs
+## 6.1 Phase matrix
 
-Input artifacts from current evaluator runs:
-
-* `runs.jsonl`
-* `document_aggregates.csv`
-* `corpus_summary.json`
+### Phase 1: Contract adapter from evaluator outputs
+Inputs:
+* `runs.jsonl`, `document_aggregates.csv`, `corpus_summary.json`
 * optional hybrid outputs (`hybrid_component_trends.csv`, `hybrid_path_breakdown.csv`)
+New files:
+* `business/artifacts_loader.py`
+* `business/contracts.py`
+* `business/types.py`
+Changed files:
+* `requirements.txt`
+* `Readme.md`
+Expected dependencies:
+* `jsonschema` (new)
+* `PyYAML`, `pandas` (already present)
 
+### Phase 2: Business metric engine
+New files:
+* `business/metrics.py`
+* `business/aggregates.py`
+* `tests/test_business_metrics.py`
+* `tests/test_business_adapter.py`
+Changed files:
+* `Readme.md`
+Expected dependencies:
+* `numpy` (already used in this plan)
+* `pytest` (already present)
+
+### Phase 3: Decision layer
+New files:
+* `business/recommender.py`
+* `business/explainability.py`
+* `tests/test_business_recommender.py`
+Changed files:
+* `config/business_thresholds.yaml`
+* `config/business_settings.yaml`
+Expected dependencies:
+* no mandatory new libraries
+
+### Phase 4A: Management outputs (mandatory)
+New files:
+* `business/reporting.py`
+* `run_business_evaluation.py`
+Changed files:
+* `Readme.md`
 Deliverables:
+* `dashboard_summary.json`
+* CSV outputs for BI
 
-* parser/loader that maps evaluator artifacts into the business schema in this document
-* strict validation and clear errors for missing/invalid artifacts
+### Phase 4B: Dynamic interface (optional track)
+New files:
+* `business/api.py` (if API is enabled)
+* `business/ui_app.py` (if UI is enabled)
+Expected dependencies:
+* `fastapi` + `uvicorn` (optional)
+* `streamlit` (optional)
 
-## Phase 2: Business metric engine
-
-Implement and test:
-
-* stability
-* agreement
-* expected cost of failure (ECF)
-* critical failure rate
-* five-number summaries
-
+### Phase 5: Governance and hardening
+New files:
+* `business/replay.py`
+* `tests/test_business_contract_regression.py`
+* `tests/golden/business_outputs/` fixtures
+Changed files:
+* `config/business_contract.yaml`
+* `Readme.md`
 Deliverables:
+* versioned contracts, replay lineage, regression suite
 
-* per-item aggregate builder
-* scenario-level aggregate builder
-* deterministic metric functions with unit tests
-
-## Phase 3: Decision layer
-
-Implement deployment recommendation logic:
-
-* readiness score
-* recommendation classes (`go`, `conditional`, `hold`)
-* threshold config per scenario/domain
-
-Deliverables:
-
-* `dashboard_summary.json` generation
-* explainability fields (top drivers, failing items, risk hotspots)
-
-## Phase 4: Management output interfaces
-
-Deliverables:
-
-* JSON output contracts for product/ops stakeholders
-* CSV tables for BI tools
-* optional lightweight CLI summary view for leadership
-
-## Phase 5: Governance and operational hardening
-
-Deliverables:
-
-* contract versioning
-* reproducibility metadata
-* regression suite for business decision outputs
-* documentation of interpretation guidelines and risk caveats
-
-## Phase 6: Optional extraction to separate service (deferred)
-
+### Phase 6: Optional service extraction (deferred)
 Only after split triggers are met:
-
-* wrap business module behind API
+* wrap business module behind API service
 * keep evaluator as producer and business module as consumer
-* preserve exact same schema contracts to minimize migration risk
+* preserve contracts unchanged to minimize migration risk
+
+## 6.2 Library decisions
+
+Core expected additions:
+* `jsonschema`
+
+Optional (only if interface track starts now):
+* `fastapi`
+* `uvicorn`
+* `streamlit`
+
+Deferred until service extraction:
+* additional API client libraries as needed
+
+## 6.3 First implementation slice
+
+Implement this minimal vertical slice first:
+
+1. Load one historical experiment from `outputs/experiments/<id>`.
+2. Map artifacts to business schema.
+3. Compute item and scenario business metrics.
+4. Apply recommendation logic with file-based thresholds.
+5. Emit `dashboard_summary.json` and one CSV.
+6. Add one regression test with golden output.
 
 ---
 
@@ -520,6 +551,22 @@ All business-side evaluations must be tunable without code edits.
 * `config/business_contract.yaml`
 : contract version, required artifact fields, compatibility rules.
 
+## A1. Config schema requirements
+
+Each config file must define:
+
+* required keys
+* optional keys with defaults
+* type constraints and allowed ranges
+* compatibility version key
+
+Validation rules:
+
+* fail fast on missing required keys,
+* reject unknown keys in strict mode,
+* normalize and record effective config after merge,
+* persist `business_config_version` and `business_config_hash` in all outputs.
+
 ## B. Parameter precedence (highest to lowest)
 
 1. Runtime override parameters (CLI/API/UI).
@@ -533,6 +580,27 @@ All business-side evaluations must be tunable without code edits.
 * Support partial override of thresholds and weights.
 * Persist an effective merged config snapshot with each decision artifact.
 * Record who/what changed parameters and when.
+
+## D. Minimum keys for first implementation
+
+`config/business_settings.yaml`:
+* normalization settings
+* rounding precision
+* default metric weights
+
+`config/business_thresholds.yaml`:
+* `go_threshold`
+* `conditional_threshold`
+* hard risk gates (`critical_failure_rate`, `expected_cost_per_1000`, `stability_min`)
+
+`config/business_costs.yaml`:
+* per-scenario failure-cost map
+* default fallback costs
+
+`config/business_contract.yaml`:
+* `business_contract_version`
+* required artifact fields
+* backward compatibility policy
 
 ---
 
