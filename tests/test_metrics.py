@@ -22,6 +22,7 @@ def _record(
     precision: float = 1.0,
     recall: float = 1.0,
     f1: float = 1.0,
+    hybrid_total_score: float = 0.0,
     estimated_cost: float | None = 0.01,
 ) -> CanonicalRunRecord:
     return CanonicalRunRecord(
@@ -45,6 +46,7 @@ def _record(
         recall=recall,
         f1=f1,
         exact_match_with_gold=(f1 == 1.0),
+        hybrid_total_score=hybrid_total_score,
     )
 
 
@@ -61,9 +63,9 @@ def test_compute_metrics_basic_overlap() -> None:
 
 def test_document_aggregate_parse_error_and_five_number() -> None:
     records = [
-        _record(document_id="doc1", run_index=0, parsed_output_json={"methods": ["A"], "tasks": ["T"], "datasets": []}, f1=1.0),
-        _record(document_id="doc1", run_index=1, parsed_output_json={"methods": ["A"], "tasks": ["T"], "datasets": []}, f1=0.5, precision=0.5, recall=0.5),
-        _record(document_id="doc1", run_index=2, parsed_output_json={}, parse_status="parse_error", f1=0.0, precision=0.0, recall=0.0),
+        _record(document_id="doc1", run_index=0, parsed_output_json={"methods": ["A"], "tasks": ["T"], "datasets": []}, f1=1.0, hybrid_total_score=0.9),
+        _record(document_id="doc1", run_index=1, parsed_output_json={"methods": ["A"], "tasks": ["T"], "datasets": []}, f1=0.5, precision=0.5, recall=0.5, hybrid_total_score=0.7),
+        _record(document_id="doc1", run_index=2, parsed_output_json={}, parse_status="parse_error", f1=0.0, precision=0.0, recall=0.0, hybrid_total_score=0.0),
     ]
 
     agg = compute_document_aggregate(records)
@@ -72,6 +74,8 @@ def test_document_aggregate_parse_error_and_five_number() -> None:
     assert agg.parse_error_rate == pytest.approx(1 / 3)
     assert agg.f1_five_number.min == 0.5
     assert agg.f1_five_number.max == 1.0
+    assert agg.mean_hybrid_score == pytest.approx((0.9 + 0.7 + 0.0) / 3)
+    assert agg.ci95_hybrid_score >= 0.0
 
 
 def test_consistency_metrics() -> None:
@@ -89,9 +93,9 @@ def test_consistency_metrics() -> None:
 
 def test_corpus_aggregate_shape() -> None:
     records = [
-        _record(document_id="doc1", run_index=0, parsed_output_json={"methods": ["A"], "tasks": ["T"], "datasets": []}, f1=1.0),
-        _record(document_id="doc1", run_index=1, parsed_output_json={}, parse_status="parse_error", f1=0.0, precision=0.0, recall=0.0),
-        _record(document_id="doc2", run_index=0, parsed_output_json={"methods": ["B"], "tasks": ["X"], "datasets": []}, f1=0.2, precision=0.2, recall=0.2),
+        _record(document_id="doc1", run_index=0, parsed_output_json={"methods": ["A"], "tasks": ["T"], "datasets": []}, f1=1.0, hybrid_total_score=1.0),
+        _record(document_id="doc1", run_index=1, parsed_output_json={}, parse_status="parse_error", f1=0.0, precision=0.0, recall=0.0, hybrid_total_score=0.0),
+        _record(document_id="doc2", run_index=0, parsed_output_json={"methods": ["B"], "tasks": ["X"], "datasets": []}, f1=0.2, precision=0.2, recall=0.2, hybrid_total_score=0.3),
     ]
 
     agg = compute_corpus_aggregate(
@@ -107,6 +111,7 @@ def test_corpus_aggregate_shape() -> None:
     assert agg.document_count == 2
     assert agg.run_count == 3
     assert 0.0 <= agg.exact_match_consistency_rate <= 1.0
+    assert agg.mean_hybrid_score == pytest.approx((1.0 + 0.0 + 0.3) / 3)
 
 
 def test_metrics_empty_input_guards() -> None:
