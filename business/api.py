@@ -38,7 +38,7 @@ def create_fastapi_app() -> Any:
     """Create FastAPI app lazily to avoid mandatory dependency in core runtime."""
 
     try:
-        from fastapi import FastAPI  # type: ignore[import-not-found]
+        from fastapi import FastAPI, HTTPException  # type: ignore[import-not-found]
     except Exception as exc:  # noqa: BLE001
         raise ImportError(
             "FastAPI is not installed. Install optional deps to enable API serving."
@@ -48,6 +48,9 @@ def create_fastapi_app() -> Any:
 
     @app.post("/business/evaluate")
     def evaluate(payload: Dict[str, Any]) -> Dict[str, Any]:
-        return evaluate_business_payload(payload)
+        try:
+            return evaluate_business_payload(payload)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return app

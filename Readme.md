@@ -109,6 +109,12 @@ This keeps API/service integration decoupled from evaluator internals while pres
 
 ### Optional API runtime
 
+Install optional API dependencies:
+
+```bash
+pip install -r requirements-api.txt
+```
+
 You can run an API wrapper around the business service boundary:
 
 ```bash
