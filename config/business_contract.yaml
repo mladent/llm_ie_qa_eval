@@ -1,0 +1,8 @@
+business_contract_version: "1.0.0"
+required_artifacts:
+  - runs.jsonl
+  - document_aggregates.csv
+  - corpus_summary.json
+compatibility:
+  backward_compatible_minor: true
+  break_on_major_change: true
