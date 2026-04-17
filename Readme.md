@@ -78,6 +78,24 @@ scripts/new_local_eval_project.sh my-cv-project
 python run_evaluation.py --config .local/eval_projects/my-cv-project/project.yaml
 ```
 
+### Run business evaluation from historical artifacts
+
+After an evaluator run completes, generate business decision artifacts from an experiment folder:
+
+```bash
+python run_business_evaluation.py \
+   --experiment-dir outputs/experiments/exp-0837df5b02be \
+   --scenario default
+```
+
+This writes:
+
+- `dashboard_summary.json`
+- `scenario_business_summary.csv`
+- `item_business_breakdown.csv`
+
+By default outputs are written to `<experiment-dir>/business`.
+
 ### Project file shape
 
 The project YAML keeps the run repeatable in one place:
