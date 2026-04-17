@@ -14,6 +14,11 @@ from business.reporting import (
 	load_business_costs,
 	write_business_report_artifacts,
 )
+from business.service import (
+	BusinessServiceRequest,
+	BusinessServiceResponse,
+	run_business_service,
+)
 from business.types import BusinessContractInput
 
 __all__ = [
@@ -29,4 +34,7 @@ __all__ = [
 	"recommend_deployment",
 	"build_business_report",
 	"write_business_report_artifacts",
+	"BusinessServiceRequest",
+	"BusinessServiceResponse",
+	"run_business_service",
 ]

@@ -97,6 +97,16 @@ This writes:
 
 By default outputs are written to `<experiment-dir>/business`.
 
+### Service boundary scaffold
+
+The business layer now includes a stable service contract for future API extraction.
+
+- `business.service.BusinessServiceRequest`
+- `business.service.BusinessServiceResponse`
+- `business.service.run_business_service(...)`
+
+This keeps API/service integration decoupled from evaluator internals while preserving the same output contracts.
+
 ### Project file shape
 
 The project YAML keeps the run repeatable in one place:
