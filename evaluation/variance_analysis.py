@@ -96,6 +96,7 @@ def per_document_instability_summary(
 
         exact_stability = compute_exact_match_stability(records)
         field_overlap = compute_field_level_overlap(records)
+        hybrid_scores = [r.hybrid_total_score for r in records]
         field_instability = (
             statistics.mean([1.0 - v for v in field_overlap.values()])
             if field_overlap
@@ -109,6 +110,8 @@ def per_document_instability_summary(
                 "field_instability": field_instability,
                 "structural_validity_rate": validity_rate,
                 "run_count": n,
+                "hybrid_score_mean": statistics.mean(hybrid_scores) if hybrid_scores else 0.0,
+                "hybrid_score_std": (statistics.stdev(hybrid_scores) if len(hybrid_scores) > 1 else 0.0),
             }
         )
 
