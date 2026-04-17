@@ -137,6 +137,44 @@ Example payload:
 
 `fastapi` and `uvicorn` are optional dependencies for this runtime path.
 
+### Add-ons: command aliases and smoke check
+
+This repository now includes optional add-ons for faster local workflows.
+
+#### Makefile aliases
+
+Use these shortcuts from the project root:
+
+```bash
+make business-eval EXPERIMENT_DIR=outputs/experiments/exp-0837df5b02be SCENARIO=default
+make business-api HOST=127.0.0.1 PORT=8000
+make business-api-smoke BASE_URL=http://127.0.0.1:8000 EXPERIMENT_DIR=outputs/experiments/exp-0837df5b02be
+make test-business
+```
+
+Available variables:
+
+- `PYTHON` (default: `.venv/bin/python`)
+- `EXPERIMENT_DIR`
+- `SCENARIO`
+- `HOST`
+- `PORT`
+- `BASE_URL`
+
+#### API smoke script
+
+There is also a direct smoke-check helper:
+
+```bash
+./scripts/business_api_smoke.sh http://127.0.0.1:8000 outputs/experiments/exp-0837df5b02be default
+```
+
+Arguments are optional and default to:
+
+- `base_url=http://127.0.0.1:8000`
+- `experiment_dir=outputs/experiments/exp-0837df5b02be`
+- `scenario=default`
+
 ### Project file shape
 
 The project YAML keeps the run repeatable in one place:
