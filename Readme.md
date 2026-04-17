@@ -107,6 +107,30 @@ The business layer now includes a stable service contract for future API extract
 
 This keeps API/service integration decoupled from evaluator internals while preserving the same output contracts.
 
+### Optional API runtime
+
+You can run an API wrapper around the business service boundary:
+
+```bash
+python run_business_api.py --host 127.0.0.1 --port 8000
+```
+
+Endpoint:
+
+- `POST /business/evaluate`
+
+Example payload:
+
+```json
+{
+   "experiment_dir": "outputs/experiments/exp-0837df5b02be",
+   "scenario": "default",
+   "write_artifacts": true
+}
+```
+
+`fastapi` and `uvicorn` are optional dependencies for this runtime path.
+
 ### Project file shape
 
 The project YAML keeps the run repeatable in one place:

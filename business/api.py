@@ -6,11 +6,18 @@ from typing import Any, Dict
 from business.service import BusinessServiceRequest, run_business_service
 
 
+def _required_str(payload: Dict[str, Any], key: str) -> str:
+    value = payload.get(key)
+    if value is None or str(value).strip() == "":
+        raise ValueError(f"Payload field '{key}' is required and must be non-empty.")
+    return str(value)
+
+
 def evaluate_business_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     """HTTP-friendly adapter that preserves business contract payload shape."""
 
     request = BusinessServiceRequest(
-        experiment_dir=str(payload["experiment_dir"]),
+        experiment_dir=_required_str(payload, "experiment_dir"),
         scenario=str(payload.get("scenario", "default")),
         settings_config_path=str(payload.get("settings_config_path", "config/business_settings.yaml")),
         thresholds_config_path=str(
