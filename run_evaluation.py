@@ -551,15 +551,21 @@ def main():
     print("MLflow Enabled:", tracker_ctx.enabled)
     if tracker_ctx.enabled:
         print("MLflow Run ID:", tracker_ctx.run_id)
+    print("-" * 72)
+    print("Run Totals")
     print(f"Total runs: {len(run_records)}  "
           f"(docs={len(dataset)}, num_runs={config.experiment.num_runs})")
     print(f"Failures: {total_failures}  failure_rate={failure_rate:.1%}")
     print(f"Provider failures: {provider_failures}")
+    print("-" * 72)
+    print("Quality Metrics")
     print(f"Precision: {avg_precision:.4f}")
     print(f"Recall:    {avg_recall:.4f}")
     print(f"F1:        {avg_f1:.4f}")
     if config.hybrid.enabled:
         print(f"Hybrid:    {avg_hybrid:.4f}")
+    else:
+        print("Hybrid:    (disabled)")
 
 
 if __name__ == "__main__":
