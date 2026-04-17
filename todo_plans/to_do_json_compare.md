@@ -64,7 +64,7 @@ Status note:
 - Verified via focused tests:
    - `pytest tests/test_config_loader_branches.py tests/test_project_config.py -q`
 
-## [ ] Phase 2: Build Hybrid Scoring Engine Modules
+## [x] Phase 2: Build Hybrid Scoring Engine Modules
 ### Objective
 Implement composable scoring primitives and orchestrator logic.
 
@@ -109,6 +109,20 @@ Implement composable scoring primitives and orchestrator logic.
 
 ### Deliverable
 A standalone, testable hybrid scoring engine that returns both final score and detailed per-component breakdown.
+
+Status note:
+- Completed module implementation:
+   - `evaluation/hybrid_types.py`
+   - `evaluation/hybrid_normalize.py`
+   - `evaluation/hybrid_comparators.py`
+   - `evaluation/hybrid_schema.py`
+   - `evaluation/hybrid_scoring.py`
+- Added focused tests:
+   - `tests/test_hybrid_comparators.py`
+   - `tests/test_hybrid_schema.py`
+   - `tests/test_hybrid_scoring.py`
+- Verified via focused test run:
+   - `pytest tests/test_hybrid_comparators.py tests/test_hybrid_schema.py tests/test_hybrid_scoring.py -q`
 
 ## [ ] Phase 3: Integrate into Runtime Evaluation Pipeline
 ### Objective
