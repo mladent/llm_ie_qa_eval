@@ -22,7 +22,7 @@ This must remain backward-compatible with existing precision/recall/F1 outputs.
 - Array key-missing behavior is configurable; default fallback: best-overlap matching.
 - parse_error/provider_error runs get hybrid score forced to 0.
 
-## Phase 1: Config and Contract Foundation
+## [x] Phase 1: Config and Contract Foundation
 ### Objective
 Introduce hybrid-scoring configuration as first-class runtime input.
 
@@ -59,7 +59,12 @@ Introduce hybrid-scoring configuration as first-class runtime input.
 ### Deliverable
 Config loader can reliably construct and validate a hybrid scoring config object.
 
-## Phase 2: Build Hybrid Scoring Engine Modules
+Status note:
+- Completed: hybrid config dataclasses, default config wiring, validation branches, and config files (`config/hybrid_scoring.yaml`, `config/extraction_output.schema.json`).
+- Verified via focused tests:
+   - `pytest tests/test_config_loader_branches.py tests/test_project_config.py -q`
+
+## [x] Phase 2: Build Hybrid Scoring Engine Modules
 ### Objective
 Implement composable scoring primitives and orchestrator logic.
 
@@ -105,7 +110,21 @@ Implement composable scoring primitives and orchestrator logic.
 ### Deliverable
 A standalone, testable hybrid scoring engine that returns both final score and detailed per-component breakdown.
 
-## Phase 3: Integrate into Runtime Evaluation Pipeline
+Status note:
+- Completed module implementation:
+   - `evaluation/hybrid_types.py`
+   - `evaluation/hybrid_normalize.py`
+   - `evaluation/hybrid_comparators.py`
+   - `evaluation/hybrid_schema.py`
+   - `evaluation/hybrid_scoring.py`
+- Added focused tests:
+   - `tests/test_hybrid_comparators.py`
+   - `tests/test_hybrid_schema.py`
+   - `tests/test_hybrid_scoring.py`
+- Verified via focused test run:
+   - `pytest tests/test_hybrid_comparators.py tests/test_hybrid_schema.py tests/test_hybrid_scoring.py -q`
+
+## [x] Phase 3: Integrate into Runtime Evaluation Pipeline
 ### Objective
 Score each run with hybrid rubric and store results without breaking existing flow.
 
@@ -136,7 +155,16 @@ Score each run with hybrid rubric and store results without breaking existing fl
 ### Deliverable
 Hybrid metrics are computed and available for every run in memory and aggregates.
 
-## Phase 4: Persistence, Analysis, and MLflow
+Status note:
+- Completed integration updates:
+   - `evaluation/run_record.py` (hybrid fields on run records and aggregate records)
+   - `run_evaluation.py` (loads schema when enabled, computes hybrid result per run)
+   - `evaluation/metrics.py` (hybrid mean/std/ci95 for document and corpus aggregates)
+- Verified with focused regression tests:
+   - `pytest tests/test_metrics.py tests/test_project_run.py -q`
+   - `pytest tests/test_hybrid_comparators.py tests/test_hybrid_schema.py tests/test_hybrid_scoring.py tests/test_metrics.py tests/test_project_run.py -q`
+
+## [x] Phase 4: Persistence, Analysis, and MLflow
 ### Objective
 Expose hybrid outputs in artifacts and experiment tracking.
 
@@ -165,7 +193,16 @@ Expose hybrid outputs in artifacts and experiment tracking.
 ### Deliverable
 Hybrid scoring is observable through local artifacts and MLflow UI.
 
-## Phase 5: Tests
+Status note:
+- Completed persistence/analysis/tracking updates:
+   - `run_evaluation.py` writes `hybrid_component_trends.csv` and `hybrid_path_breakdown.csv`.
+   - `evaluation/analysis_questions.py` adds hybrid tables and hybrid-aware score variation rows.
+   - `evaluation/variance_analysis.py` includes per-document hybrid score mean/std in instability summary.
+   - `mlflow_utils.py` logs hybrid run/document/corpus metrics.
+- Verified with focused regression tests:
+   - `pytest tests/test_analysis_and_variance.py tests/test_metrics.py tests/test_project_run.py tests/test_mlflow_utils.py -q`
+
+## [x] Phase 5: Tests
 ### Objective
 Guarantee correctness and backward compatibility.
 
@@ -190,7 +227,19 @@ Guarantee correctness and backward compatibility.
 ### Deliverable
 Reliable hybrid scoring behavior with regression protection.
 
-## Phase 6: Documentation and Usability
+Status note:
+- Added focused hybrid tests:
+   - `tests/test_hybrid_schema.py`
+   - `tests/test_hybrid_comparators.py`
+   - `tests/test_hybrid_scoring.py`
+- Updated regression tests:
+   - `tests/test_metrics.py` (hybrid aggregate assertions)
+   - `tests/test_project_run.py` (hybrid CSV artifact assertions)
+   - `tests/test_config_loader_branches.py` (hybrid config validation branches)
+- Verified with focused suite:
+   - `pytest tests/test_hybrid_schema.py tests/test_hybrid_comparators.py tests/test_hybrid_scoring.py tests/test_metrics.py tests/test_config_loader_branches.py tests/test_project_run.py -q`
+
+## [x] Phase 6: Documentation and Usability
 ### Objective
 Document configuration and operational usage.
 
@@ -211,6 +260,14 @@ Document configuration and operational usage.
 
 ### Deliverable
 Users can configure and interpret hybrid scoring without source-code diving.
+
+Status note:
+- Updated `Readme.md` with:
+   - hybrid scoring architecture summary
+   - project config example for `hybrid` section
+   - comparator/rule configuration explanation
+   - new hybrid artifact and metric field documentation
+- Updated `config/hybrid_scoring.yaml` with annotated comparator/rule comments.
 
 ## Required Dependency Additions
 Update requirements.txt with:

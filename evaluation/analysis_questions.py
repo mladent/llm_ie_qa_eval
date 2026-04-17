@@ -69,13 +69,17 @@ def build_phase8_analysis(
     score_variation_rows: List[Dict[str, Any]] = []
     for doc_id, records in records_by_doc.items():
         successful_f1 = [r.f1 for r in records if r.parse_status == "success"]
+        hybrid_scores = [r.hybrid_total_score for r in records]
         unique_scores = len({round(v, 12) for v in successful_f1})
+        unique_hybrid = len({round(v, 12) for v in hybrid_scores})
         score_variation_rows.append(
             {
                 "document_id": doc_id,
                 "successful_run_count": len(successful_f1),
                 "score_changes_while_structurally_valid": unique_scores > 1,
                 "unique_successful_f1_count": unique_scores,
+                "hybrid_score_changes": unique_hybrid > 1,
+                "unique_hybrid_score_count": unique_hybrid,
             }
         )
 
@@ -117,12 +121,16 @@ def build_phase8_analysis(
                 "parse_error_rate": agg.parse_error_rate,
                 "latency_mean": agg.latency_mean,
                 "cost_mean": agg.cost_mean,
+                "mean_hybrid_score": agg.mean_hybrid_score,
+                "std_hybrid_score": agg.std_hybrid_score,
                 "run_count": run_counts_by_doc.get(agg.document_id, agg.run_count),
                 "provider_failure_rate": provider_fail_rate_by_doc.get(agg.document_id, 0.0),
                 "exact_match_stability": inst.get("exact_match_stability", 0.0),
                 "field_instability": inst.get("field_instability", 0.0),
                 "structural_validity_rate": inst.get("structural_validity_rate", 0.0),
                 "instability_score": 1.0 - inst.get("exact_match_stability", 0.0),
+                "hybrid_score_mean": inst.get("hybrid_score_mean", 0.0),
+                "hybrid_score_std": inst.get("hybrid_score_std", 0.0),
             }
         )
 
@@ -145,7 +153,33 @@ def build_phase8_analysis(
         "instability_vs_latency_mean": _pearson(instability_vals, latency_vals),
         "instability_vs_cost_mean": _pearson(instability_vals, cost_vals),
         "instability_vs_provider_failure_rate": _pearson(instability_vals, provider_failure_vals),
+        "instability_vs_hybrid_score_mean": _pearson(
+            instability_vals,
+            [row["hybrid_score_mean"] for row in doc_rows],
+        ),
     }
+
+    hybrid_component_trends = [
+        {
+            "document_id": row["document_id"],
+            "mean_hybrid_score": row["mean_hybrid_score"],
+            "std_hybrid_score": row["std_hybrid_score"],
+            "hybrid_score_mean": row["hybrid_score_mean"],
+            "hybrid_score_std": row["hybrid_score_std"],
+            "provider_failure_rate": row["provider_failure_rate"],
+        }
+        for row in doc_rows
+    ]
+
+    hybrid_path_breakdown = [
+        {
+            "path": f"$.{row['field']}",
+            "mean_overlap": row["mean_overlap"],
+            "mean_instability": 1.0 - row["mean_overlap"],
+            "docs_observed": row["docs_observed"],
+        }
+        for row in least_stable_fields
+    ]
 
     return {
         "corpus_questions": {
@@ -183,5 +217,10 @@ def build_phase8_analysis(
             "document_analysis": doc_rows,
             "field_stability": least_stable_fields,
             "score_variation": sorted(score_variation_rows, key=lambda row: row["document_id"]),
+            "hybrid_component_trends": sorted(
+                hybrid_component_trends,
+                key=lambda row: row["document_id"],
+            ),
+            "hybrid_path_breakdown": hybrid_path_breakdown,
         },
     }
