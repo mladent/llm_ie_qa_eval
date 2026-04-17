@@ -39,3 +39,20 @@ exports:
   write_jsonl: true
   write_csv: true
   write_parquet: true
+
+hybrid:
+  enabled: false
+  schema_path: "config/extraction_output.schema.json"
+  rubric_path: "config/hybrid_scoring.yaml"
+  parse_error_behavior: "force_zero"
+  path_syntax: "jsonpath"
+  unknown_field_policy:
+    mode: "penalize"
+    penalty_weight: 0.1
+  array_matching:
+    fallback_strategy: "best_overlap"
+  schema_scoring:
+    required_weight: 0.4
+    type_weight: 0.3
+    enum_weight: 0.2
+    additional_properties_weight: 0.1

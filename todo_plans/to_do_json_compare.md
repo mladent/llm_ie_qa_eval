@@ -22,7 +22,7 @@ This must remain backward-compatible with existing precision/recall/F1 outputs.
 - Array key-missing behavior is configurable; default fallback: best-overlap matching.
 - parse_error/provider_error runs get hybrid score forced to 0.
 
-## Phase 1: Config and Contract Foundation
+## [x] Phase 1: Config and Contract Foundation
 ### Objective
 Introduce hybrid-scoring configuration as first-class runtime input.
 
@@ -59,7 +59,12 @@ Introduce hybrid-scoring configuration as first-class runtime input.
 ### Deliverable
 Config loader can reliably construct and validate a hybrid scoring config object.
 
-## Phase 2: Build Hybrid Scoring Engine Modules
+Status note:
+- Completed: hybrid config dataclasses, default config wiring, validation branches, and config files (`config/hybrid_scoring.yaml`, `config/extraction_output.schema.json`).
+- Verified via focused tests:
+   - `pytest tests/test_config_loader_branches.py tests/test_project_config.py -q`
+
+## [ ] Phase 2: Build Hybrid Scoring Engine Modules
 ### Objective
 Implement composable scoring primitives and orchestrator logic.
 
@@ -105,7 +110,7 @@ Implement composable scoring primitives and orchestrator logic.
 ### Deliverable
 A standalone, testable hybrid scoring engine that returns both final score and detailed per-component breakdown.
 
-## Phase 3: Integrate into Runtime Evaluation Pipeline
+## [ ] Phase 3: Integrate into Runtime Evaluation Pipeline
 ### Objective
 Score each run with hybrid rubric and store results without breaking existing flow.
 
@@ -136,7 +141,7 @@ Score each run with hybrid rubric and store results without breaking existing fl
 ### Deliverable
 Hybrid metrics are computed and available for every run in memory and aggregates.
 
-## Phase 4: Persistence, Analysis, and MLflow
+## [ ] Phase 4: Persistence, Analysis, and MLflow
 ### Objective
 Expose hybrid outputs in artifacts and experiment tracking.
 
@@ -165,7 +170,7 @@ Expose hybrid outputs in artifacts and experiment tracking.
 ### Deliverable
 Hybrid scoring is observable through local artifacts and MLflow UI.
 
-## Phase 5: Tests
+## [ ] Phase 5: Tests
 ### Objective
 Guarantee correctness and backward compatibility.
 
@@ -190,7 +195,7 @@ Guarantee correctness and backward compatibility.
 ### Deliverable
 Reliable hybrid scoring behavior with regression protection.
 
-## Phase 6: Documentation and Usability
+## [ ] Phase 6: Documentation and Usability
 ### Objective
 Document configuration and operational usage.
 

@@ -47,6 +47,7 @@ def write_config_snapshot(path: Path, config: EvalConfig) -> None:
         "execution": asdict(config.execution),
         "tracking": asdict(config.tracking),
         "exports": asdict(config.exports),
+        "hybrid": asdict(config.hybrid),
         "config_path": config.config_path,
     }
     with path.open("w", encoding="utf-8") as handle:
