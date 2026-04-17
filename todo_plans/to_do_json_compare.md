@@ -164,7 +164,7 @@ Status note:
    - `pytest tests/test_metrics.py tests/test_project_run.py -q`
    - `pytest tests/test_hybrid_comparators.py tests/test_hybrid_schema.py tests/test_hybrid_scoring.py tests/test_metrics.py tests/test_project_run.py -q`
 
-## [ ] Phase 4: Persistence, Analysis, and MLflow
+## [x] Phase 4: Persistence, Analysis, and MLflow
 ### Objective
 Expose hybrid outputs in artifacts and experiment tracking.
 
@@ -193,7 +193,16 @@ Expose hybrid outputs in artifacts and experiment tracking.
 ### Deliverable
 Hybrid scoring is observable through local artifacts and MLflow UI.
 
-## [ ] Phase 5: Tests
+Status note:
+- Completed persistence/analysis/tracking updates:
+   - `run_evaluation.py` writes `hybrid_component_trends.csv` and `hybrid_path_breakdown.csv`.
+   - `evaluation/analysis_questions.py` adds hybrid tables and hybrid-aware score variation rows.
+   - `evaluation/variance_analysis.py` includes per-document hybrid score mean/std in instability summary.
+   - `mlflow_utils.py` logs hybrid run/document/corpus metrics.
+- Verified with focused regression tests:
+   - `pytest tests/test_analysis_and_variance.py tests/test_metrics.py tests/test_project_run.py tests/test_mlflow_utils.py -q`
+
+## [x] Phase 5: Tests
 ### Objective
 Guarantee correctness and backward compatibility.
 
@@ -218,7 +227,19 @@ Guarantee correctness and backward compatibility.
 ### Deliverable
 Reliable hybrid scoring behavior with regression protection.
 
-## [ ] Phase 6: Documentation and Usability
+Status note:
+- Added focused hybrid tests:
+   - `tests/test_hybrid_schema.py`
+   - `tests/test_hybrid_comparators.py`
+   - `tests/test_hybrid_scoring.py`
+- Updated regression tests:
+   - `tests/test_metrics.py` (hybrid aggregate assertions)
+   - `tests/test_project_run.py` (hybrid CSV artifact assertions)
+   - `tests/test_config_loader_branches.py` (hybrid config validation branches)
+- Verified with focused suite:
+   - `pytest tests/test_hybrid_schema.py tests/test_hybrid_comparators.py tests/test_hybrid_scoring.py tests/test_metrics.py tests/test_config_loader_branches.py tests/test_project_run.py -q`
+
+## [x] Phase 6: Documentation and Usability
 ### Objective
 Document configuration and operational usage.
 
@@ -239,6 +260,14 @@ Document configuration and operational usage.
 
 ### Deliverable
 Users can configure and interpret hybrid scoring without source-code diving.
+
+Status note:
+- Updated `Readme.md` with:
+   - hybrid scoring architecture summary
+   - project config example for `hybrid` section
+   - comparator/rule configuration explanation
+   - new hybrid artifact and metric field documentation
+- Updated `config/hybrid_scoring.yaml` with annotated comparator/rule comments.
 
 ## Required Dependency Additions
 Update requirements.txt with:
