@@ -13,6 +13,70 @@ This is designed to be:
 
 ---
 
+# 🧭 0. Integration strategy decision (single source execution plan)
+
+## Decision
+
+Build the business/management layer in the same repository first, as a **modular monolith**.
+
+This means:
+
+* one codebase and release for now
+* strict module boundaries between evaluator and business tooling
+* data-contract-first interfaces so later extraction to a separate service is easy
+
+## Why this decision now
+
+At this stage, metrics and business logic are still evolving quickly. Keeping one repo optimizes iteration speed and debugging while avoiding early API/service overhead.
+
+## Pros/cons considered
+
+### Option A: separate project + API calls to evaluator
+
+Pros:
+
+* clear ownership boundaries
+* independent deployments and scaling
+* strong contract discipline from day one
+
+Cons:
+
+* extra infra early (API versioning, auth, deployment)
+* slower iteration while metric definitions still change
+* harder debugging across service boundaries
+
+### Option B: one integrated project (chosen)
+
+Pros:
+
+* fastest feedback loop
+* easiest integration testing and refactoring
+* lower operational complexity
+
+Cons:
+
+* risk of coupling if boundaries are not enforced
+* future split requires discipline in interfaces
+
+## Non-negotiable boundary rules (to keep split possible)
+
+1. Business module consumes evaluator artifacts as contracts, not internal evaluator functions.
+2. No cross-imports from business logic into evaluator core.
+3. Version output contract explicitly (for example `business_contract_version`).
+4. Keep all business-facing payload builders under a dedicated package.
+
+## Split-later triggers
+
+Move to a separate service/project only when one or more become true:
+
+* different team ownership
+* need for independent release cadence
+* multi-tenant online serving requirements
+* scaling/economics require separate compute lifecycle
+* contract churn stabilizes and API hardening is justified
+
+---
+
 # 🧱 1. Core data model (schema)
 
 We model **runs → evaluations → aggregates → business metrics**
@@ -331,6 +395,92 @@ This pipeline directly feeds:
 
 ---
 
+# 🛠️ 6. Unified execution roadmap (implementation plan)
+
+This section converts the strategy and model above into delivery phases.
+
+## Phase 1: Contract adapter from evaluator outputs
+
+Input artifacts from current evaluator runs:
+
+* `runs.jsonl`
+* `document_aggregates.csv`
+* `corpus_summary.json`
+* optional hybrid outputs (`hybrid_component_trends.csv`, `hybrid_path_breakdown.csv`)
+
+Deliverables:
+
+* parser/loader that maps evaluator artifacts into the business schema in this document
+* strict validation and clear errors for missing/invalid artifacts
+
+## Phase 2: Business metric engine
+
+Implement and test:
+
+* stability
+* agreement
+* expected cost of failure (ECF)
+* critical failure rate
+* five-number summaries
+
+Deliverables:
+
+* per-item aggregate builder
+* scenario-level aggregate builder
+* deterministic metric functions with unit tests
+
+## Phase 3: Decision layer
+
+Implement deployment recommendation logic:
+
+* readiness score
+* recommendation classes (`go`, `conditional`, `hold`)
+* threshold config per scenario/domain
+
+Deliverables:
+
+* `dashboard_summary.json` generation
+* explainability fields (top drivers, failing items, risk hotspots)
+
+## Phase 4: Management output interfaces
+
+Deliverables:
+
+* JSON output contracts for product/ops stakeholders
+* CSV tables for BI tools
+* optional lightweight CLI summary view for leadership
+
+## Phase 5: Governance and operational hardening
+
+Deliverables:
+
+* contract versioning
+* reproducibility metadata
+* regression suite for business decision outputs
+* documentation of interpretation guidelines and risk caveats
+
+## Phase 6: Optional extraction to separate service (deferred)
+
+Only after split triggers are met:
+
+* wrap business module behind API
+* keep evaluator as producer and business module as consumer
+* preserve exact same schema contracts to minimize migration risk
+
+---
+
+# ✅ 7. Definition of done for this plan
+
+The plan is considered complete when:
+
+1. A single command can produce business decision JSON from evaluator outputs.
+2. All core metrics in Section 2 are computed and tested.
+3. Dashboard JSON in Section 3 is generated with real run data.
+4. Recommendation logic is configurable and scenario-aware.
+5. Contract tests prevent breaking downstream consumers.
+
+---
+
 # 💡 Final insight
 
 What you’ve effectively built here is:
@@ -341,12 +491,4 @@ That’s the key shift:
 
 * from “model quality measurement”
 * to **“deployment risk quantification”**
-
----
-
-If you want next step, I can:
-
-* extend this to **LLM-as-a-judge scoring integration**
-* or plug it into **OpenAI / Gemini APIs for automatic runs**
-* or design a **Streamlit dashboard UI on top of this JSON**
 

@@ -103,6 +103,64 @@ Each `gold_path` file must contain JSON with the evaluator's expected schema:
 
 If you still want the legacy dataset mode, `data.dataset_path` continues to work. Project mode uses `data.documents` instead.
 
+### Hybrid JSON Rubric Scoring
+
+The evaluator now supports an optional hybrid scoring layer in addition to existing
+precision/recall/F1 metrics.
+
+Hybrid score is a weighted combination of:
+
+- schema component: JSON Schema-aware structural validation
+- value component: JSONPath rule-based value similarity with configurable comparators
+
+Current defaults are deterministic and lexical (no embeddings).
+
+Enable hybrid scoring in your project config:
+
+```yaml
+hybrid:
+   enabled: true
+   schema_path: "config/extraction_output.schema.json"
+   rubric_path: "config/hybrid_scoring.yaml"
+   parse_error_behavior: "force_zero"
+   path_syntax: "jsonpath"
+   unknown_field_policy:
+      mode: "penalize"   # ignore | penalize | fail_schema
+      penalty_weight: 0.1
+   array_matching:
+      fallback_strategy: "best_overlap"  # best_overlap | strict_non_match | error
+   schema_scoring:
+      required_weight: 0.4
+      type_weight: 0.3
+      enum_weight: 0.2
+      additional_properties_weight: 0.1
+```
+
+`config/hybrid_scoring.yaml` defines:
+
+- comparator catalog (`exact_match`, `set_jaccard_match`, `fuzzy_lexical_match`, `key_based_array_object_match`)
+- per-path rules with JSONPath selectors and per-rule weights
+
+Run-level outputs include hybrid fields in `runs.jsonl`:
+
+- `hybrid_total_score`
+- `hybrid_schema_score`
+- `hybrid_value_score`
+- `hybrid_unknown_penalty`
+- `hybrid_rule_coverage`
+
+Additional analysis artifacts are generated per experiment:
+
+- `hybrid_component_trends.csv`
+- `hybrid_path_breakdown.csv`
+
+Aggregate artifacts (`document_aggregates.csv`, `corpus_summary.json`) include
+hybrid aggregate stats:
+
+- `mean_hybrid_score`
+- `std_hybrid_score`
+- `ci95_hybrid_score`
+
 ### 11. Expected Output
 
 ```

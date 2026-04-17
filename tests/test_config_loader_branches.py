@@ -296,3 +296,35 @@ def test_load_eval_config_applies_cli_and_env_overrides(tmp_path: Path, monkeypa
     assert loaded.experiment.num_runs == 3
     assert loaded.model.temperature == 0.1
     assert loaded.model.max_tokens == 100
+
+
+def test_validate_config_rejects_invalid_hybrid_policy(tmp_path: Path) -> None:
+    dataset_path, prompt_path = _write_base_files(tmp_path)
+    cfg = config_loader._deep_merge(
+        config_loader.DEFAULT_CONFIG,
+        {
+            "data": {"dataset_path": str(dataset_path), "prompt_path": str(prompt_path)},
+            "hybrid": {"unknown_field_policy": {"mode": "bad-mode", "penalty_weight": 0.1}},
+        },
+    )
+
+    with pytest.raises(ValueError, match="unknown_field_policy.mode"):
+        config_loader._validate_config(cfg)
+
+
+def test_validate_config_rejects_missing_hybrid_files_when_enabled(tmp_path: Path) -> None:
+    dataset_path, prompt_path = _write_base_files(tmp_path)
+    cfg = config_loader._deep_merge(
+        config_loader.DEFAULT_CONFIG,
+        {
+            "data": {"dataset_path": str(dataset_path), "prompt_path": str(prompt_path)},
+            "hybrid": {
+                "enabled": True,
+                "schema_path": str(tmp_path / "missing.schema.json"),
+                "rubric_path": str(tmp_path / "missing.rubric.yaml"),
+            },
+        },
+    )
+
+    with pytest.raises(ValueError, match="hybrid.schema_path"):
+        config_loader._validate_config(cfg)
