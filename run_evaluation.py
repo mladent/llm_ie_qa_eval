@@ -10,6 +10,8 @@ from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, EvalConfig, load_eval_config
 from evaluation.dataset_validation import validate_dataset_shape
+from evaluation.hybrid_schema import load_json_schema
+from evaluation.hybrid_scoring import evaluate_hybrid
 from evaluation.analysis_questions import build_phase8_analysis
 from evaluation.metrics import (
     compute_corpus_aggregate,
@@ -147,6 +149,11 @@ def _make_failed_run_record(
         recall=0.0,
         f1=0.0,
         exact_match_with_gold=False,
+        hybrid_total_score=0.0,
+        hybrid_schema_score=0.0,
+        hybrid_value_score=0.0,
+        hybrid_unknown_penalty=0.0,
+        hybrid_rule_coverage=0.0,
     )
 
 
@@ -237,6 +244,7 @@ def main():
     prompt_sha256 = sha256_text(prompt_template)
     prompt_id = config.data.prompt_id
     evaluation_timestamp = utc_now_iso()
+    hybrid_schema = load_json_schema(config.hybrid.schema_path) if config.hybrid.enabled else {}
 
     provenance = ExperimentProvenance(
         experiment_id=experiment_id,
@@ -313,6 +321,7 @@ def main():
             "top_p": config.model.top_p,
             "max_tokens": config.model.max_tokens,
             "tracking_uri": config.tracking.tracking_uri,
+            "hybrid_enabled": config.hybrid.enabled,
         }
     )
 
@@ -360,6 +369,21 @@ def main():
                 prediction = extraction_result["parsed_output_json"]
                 metrics = compute_metrics(prediction, doc["gold"])
                 exact_match_with_gold = prediction == doc["gold"]
+                if config.hybrid.enabled:
+                    hybrid_result = evaluate_hybrid(
+                        prediction,
+                        doc["gold"],
+                        rubric_rules=config.hybrid.rules,
+                        comparator_configs=config.hybrid.comparators,
+                        schema=hybrid_schema,
+                        schema_scoring=config.hybrid.schema_scoring,
+                        unknown_field_policy=config.hybrid.unknown_field_policy,
+                        parse_status=extraction_result["parse_status"],
+                        parse_error_behavior=config.hybrid.parse_error_behavior,
+                        array_fallback_strategy=config.hybrid.array_matching.fallback_strategy,
+                    )
+                else:
+                    hybrid_result = None
 
                 run_record = CanonicalRunRecord(
                     experiment_id=experiment_id,
@@ -382,6 +406,11 @@ def main():
                     recall=metrics["recall"],
                     f1=metrics["f1"],
                     exact_match_with_gold=exact_match_with_gold,
+                    hybrid_total_score=(hybrid_result.total_score if hybrid_result else 0.0),
+                    hybrid_schema_score=(hybrid_result.schema_score if hybrid_result else 0.0),
+                    hybrid_value_score=(hybrid_result.value_score if hybrid_result else 0.0),
+                    hybrid_unknown_penalty=(hybrid_result.unknown_field_penalty if hybrid_result else 0.0),
+                    hybrid_rule_coverage=(hybrid_result.rule_coverage if hybrid_result else 0.0),
                 )
 
                 run_records.append(run_record)
@@ -396,6 +425,13 @@ def main():
                 print(f"  Metrics: precision={run_record.precision:.3f}  "
                     f"recall={run_record.recall:.3f}  f1={run_record.f1:.3f}  "
                     f"exact_match={run_record.exact_match_with_gold}")
+                if config.hybrid.enabled:
+                    print(
+                        "  Hybrid: "
+                        f"total={run_record.hybrid_total_score:.3f}  "
+                        f"schema={run_record.hybrid_schema_score:.3f}  "
+                        f"value={run_record.hybrid_value_score:.3f}"
+                    )
 
         # Phase 6.2/6.3 - aggregate artifact persistence for analysis.
         by_doc: dict[str, list[CanonicalRunRecord]] = defaultdict(list)
@@ -462,6 +498,7 @@ def main():
     avg_precision = sum(r.precision for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_recall = sum(r.recall for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_f1 = sum(r.f1 for r in successful_records) / len(successful_records) if successful_records else 0.0
+    avg_hybrid = sum(r.hybrid_total_score for r in run_records) / len(run_records) if run_records else 0.0
     total_failures = sum(1 for r in run_records if r.parse_status != "success")
     failure_rate = total_failures / len(run_records) if run_records else 0.0
 
@@ -507,6 +544,8 @@ def main():
     print(f"Precision: {avg_precision:.4f}")
     print(f"Recall:    {avg_recall:.4f}")
     print(f"F1:        {avg_f1:.4f}")
+    if config.hybrid.enabled:
+        print(f"Hybrid:    {avg_hybrid:.4f}")
 
 
 if __name__ == "__main__":

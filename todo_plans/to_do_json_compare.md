@@ -124,7 +124,7 @@ Status note:
 - Verified via focused test run:
    - `pytest tests/test_hybrid_comparators.py tests/test_hybrid_schema.py tests/test_hybrid_scoring.py -q`
 
-## [ ] Phase 3: Integrate into Runtime Evaluation Pipeline
+## [x] Phase 3: Integrate into Runtime Evaluation Pipeline
 ### Objective
 Score each run with hybrid rubric and store results without breaking existing flow.
 
@@ -154,6 +154,15 @@ Score each run with hybrid rubric and store results without breaking existing fl
 
 ### Deliverable
 Hybrid metrics are computed and available for every run in memory and aggregates.
+
+Status note:
+- Completed integration updates:
+   - `evaluation/run_record.py` (hybrid fields on run records and aggregate records)
+   - `run_evaluation.py` (loads schema when enabled, computes hybrid result per run)
+   - `evaluation/metrics.py` (hybrid mean/std/ci95 for document and corpus aggregates)
+- Verified with focused regression tests:
+   - `pytest tests/test_metrics.py tests/test_project_run.py -q`
+   - `pytest tests/test_hybrid_comparators.py tests/test_hybrid_schema.py tests/test_hybrid_scoring.py tests/test_metrics.py tests/test_project_run.py -q`
 
 ## [ ] Phase 4: Persistence, Analysis, and MLflow
 ### Objective
