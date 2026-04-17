@@ -91,6 +91,7 @@ python run_business_evaluation.py \
 This writes:
 
 - `dashboard_summary.json`
+- `replay_metadata.json`
 - `scenario_business_summary.csv`
 - `item_business_breakdown.csv`
 

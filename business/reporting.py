@@ -14,6 +14,7 @@ from business.recommender import (
     load_business_thresholds,
     recommend_deployment,
 )
+from business.replay import build_effective_business_config, build_replay_metadata
 from persistence import write_json_artifact, write_rows_csv
 
 
@@ -54,6 +55,7 @@ def build_business_report(
     settings_config_path: str,
     thresholds_config_path: str,
     costs_config_path: str,
+    contract_config_path: str = "config/business_contract.yaml",
 ) -> Dict[str, Any]:
     """Build dashboard payload and tabular outputs from evaluator artifacts."""
 
@@ -61,6 +63,13 @@ def build_business_report(
     settings = load_business_settings(settings_config_path)
     thresholds = load_business_thresholds(thresholds_config_path)
     cost_map = load_business_costs(costs_config_path, scenario)
+    effective_config = build_effective_business_config(
+        scenario=scenario,
+        settings_config_path=settings_config_path,
+        thresholds_config_path=thresholds_config_path,
+        costs_config_path=costs_config_path,
+        contract_config_path=contract_config_path,
+    )
 
     item_metrics = [evaluate_item(item, cost_map) for item in contract.items]
     scenario_view = aggregate_scenario(item_metrics)
@@ -77,6 +86,8 @@ def build_business_report(
         **recommendation,
         "scenario": scenario,
         "business_contract_version": contract.business_contract_version,
+        "business_config_version": effective_config["business_config_version"],
+        "business_config_hash": effective_config["business_config_hash"],
         "source_experiment_dir": contract.source_experiment_dir,
         "scenario_summary": scenario_view["summary"],
         "failure_breakdown": scenario_view["failure_breakdown"],
@@ -107,6 +118,10 @@ def build_business_report(
 
     return {
         "dashboard_summary": dashboard_summary,
+        "replay_metadata": build_replay_metadata(
+            source_experiment_dir=contract.source_experiment_dir,
+            effective_business_config=effective_config,
+        ),
         "scenario_csv_rows": [scenario_csv_row],
         "item_csv_rows": item_csv_rows,
     }
@@ -123,15 +138,18 @@ def write_business_report_artifacts(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     dashboard_path = out_dir / "dashboard_summary.json"
+    replay_metadata_path = out_dir / "replay_metadata.json"
     scenario_csv_path = out_dir / "scenario_business_summary.csv"
     item_csv_path = out_dir / "item_business_breakdown.csv"
 
     write_json_artifact(dashboard_path, dict(report_payload["dashboard_summary"]))
+    write_json_artifact(replay_metadata_path, dict(report_payload["replay_metadata"]))
     write_rows_csv(scenario_csv_path, report_payload["scenario_csv_rows"])
     write_rows_csv(item_csv_path, report_payload["item_csv_rows"])
 
     return {
         "dashboard_summary": str(dashboard_path),
+        "replay_metadata": str(replay_metadata_path),
         "scenario_business_summary": str(scenario_csv_path),
         "item_business_breakdown": str(item_csv_path),
     }

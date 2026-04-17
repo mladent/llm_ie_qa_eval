@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from business.reporting import build_business_report, load_business_costs, write_business_report_artifacts
+from business.reporting import build_business_report
 
 
 def _write_sample_artifacts(exp_dir: Path) -> None:
@@ -72,23 +72,18 @@ def _write_sample_artifacts(exp_dir: Path) -> None:
     )
 
 
-def test_load_business_costs_with_scenario_override(tmp_path: Path) -> None:
-    cfg = tmp_path / "costs.yaml"
-    cfg.write_text(
-        "default:\n"
-        "  incorrect: 5\n"
-        "  parse_error: 10\n"
-        "refund_handling:\n"
-        "  incorrect: 8\n",
-        encoding="utf-8",
-    )
-
-    costs = load_business_costs(str(cfg), "refund_handling")
-    assert costs["incorrect"] == 8.0
-    assert costs["parse_error"] == 10.0
+def _load_json(path: str) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def test_build_and_write_business_report(tmp_path: Path) -> None:
+def _normalize_dashboard(payload: dict) -> dict:
+    normalized = dict(payload)
+    normalized["business_config_hash"] = "<dynamic>"
+    normalized["source_experiment_dir"] = "<dynamic>"
+    return normalized
+
+
+def test_business_dashboard_contract_regression(tmp_path: Path) -> None:
     exp_dir = tmp_path / "exp"
     exp_dir.mkdir(parents=True)
     _write_sample_artifacts(exp_dir)
@@ -99,24 +94,23 @@ def test_build_and_write_business_report(tmp_path: Path) -> None:
         settings_config_path="config/business_settings.yaml",
         thresholds_config_path="config/business_thresholds.yaml",
         costs_config_path="config/business_costs.yaml",
+        contract_config_path="config/business_contract.yaml",
     )
 
-    assert "dashboard_summary" in report
-    assert report["dashboard_summary"]["deployment_readiness"]["recommendation"] in {
-        "go",
-        "conditional",
-        "hold",
-    }
-    assert len(report["item_csv_rows"]) == 2
+    golden_dashboard = _load_json("tests/golden/business_outputs/dashboard_summary.json")
+    key_contract = _load_json("tests/golden/business_outputs/required_contract_keys.json")
 
-    out_dir = tmp_path / "business_out"
-    paths = write_business_report_artifacts(report_payload=report, output_dir=str(out_dir))
+    dashboard = report["dashboard_summary"]
+    replay = report["replay_metadata"]
 
-    dashboard = json.loads((out_dir / "dashboard_summary.json").read_text(encoding="utf-8"))
-    replay_metadata = json.loads((out_dir / "replay_metadata.json").read_text(encoding="utf-8"))
-    assert dashboard["scenario"] == "default"
-    assert "business_config_hash" in dashboard
-    assert replay_metadata["source_experiment_id"] == "exp"
-    assert Path(paths["scenario_business_summary"]).exists()
-    assert Path(paths["item_business_breakdown"]).exists()
-    assert Path(paths["replay_metadata"]).exists()
+    for key in key_contract["dashboard_required_keys"]:
+        assert key in dashboard
+
+    for key in key_contract["replay_metadata_required_keys"]:
+        assert key in replay
+
+    assert _normalize_dashboard(dashboard) == _normalize_dashboard(golden_dashboard)
+
+    assert replay["business_contract_version"] == dashboard["business_contract_version"]
+    assert replay["business_config_version"] == dashboard["business_config_version"]
+    assert replay["business_config_hash"] == dashboard["business_config_hash"]

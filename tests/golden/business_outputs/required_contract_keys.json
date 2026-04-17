@@ -1,0 +1,23 @@
+{
+  "dashboard_required_keys": [
+    "deployment_readiness",
+    "risk",
+    "stability",
+    "explainability",
+    "scenario",
+    "business_contract_version",
+    "business_config_version",
+    "business_config_hash",
+    "source_experiment_dir",
+    "scenario_summary",
+    "failure_breakdown"
+  ],
+  "replay_metadata_required_keys": [
+    "source_experiment_id",
+    "source_experiment_dir",
+    "replay_timestamp",
+    "business_contract_version",
+    "business_config_version",
+    "business_config_hash"
+  ]
+}

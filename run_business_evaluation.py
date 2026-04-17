@@ -9,6 +9,7 @@ from business.reporting import build_business_report, write_business_report_arti
 DEFAULT_SETTINGS_PATH = "config/business_settings.yaml"
 DEFAULT_THRESHOLDS_PATH = "config/business_thresholds.yaml"
 DEFAULT_COSTS_PATH = "config/business_costs.yaml"
+DEFAULT_CONTRACT_PATH = "config/business_contract.yaml"
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,6 +42,11 @@ def parse_args() -> argparse.Namespace:
         help="Path to business costs YAML.",
     )
     parser.add_argument(
+        "--contract-config",
+        default=DEFAULT_CONTRACT_PATH,
+        help="Path to business contract YAML.",
+    )
+    parser.add_argument(
         "--output-dir",
         default=None,
         help="Optional output directory. Defaults to <experiment-dir>/business.",
@@ -63,6 +69,7 @@ def main() -> None:
         settings_config_path=args.settings_config,
         thresholds_config_path=args.thresholds_config,
         costs_config_path=args.costs_config,
+        contract_config_path=args.contract_config,
     )
     paths = write_business_report_artifacts(report_payload=report, output_dir=str(output_dir))
 
