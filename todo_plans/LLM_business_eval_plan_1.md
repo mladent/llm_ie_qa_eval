@@ -478,17 +478,197 @@ The plan is considered complete when:
 3. Dashboard JSON in Section 3 is generated with real run data.
 4. Recommendation logic is configurable and scenario-aware.
 5. Contract tests prevent breaking downstream consumers.
+6. All business-evaluation knobs are configurable via files and runtime parameters.
+7. Historical static evaluations can be replayed with new cost/threshold settings without re-running LLM inference.
 
 ---
 
-# 💡 Final insight
+# 8. Missing implementation details (must be resolved before coding)
 
-What you’ve effectively built here is:
+## A. Contract and mapping gaps
 
-> **A probabilistic risk model over LLM behavior — not just an evaluation.**
+* Define exact mapping from evaluator artifacts (`runs.jsonl`, `document_aggregates.csv`, `corpus_summary.json`) into business-layer schema.
+* Define how business `scores` fields are derived when only evaluator metrics exist.
+* Define canonical failure taxonomy and mapping from evaluator fields to business failure modes.
 
-That’s the key shift:
+## B. Decision and risk gaps
 
-* from “model quality measurement”
-* to **“deployment risk quantification”**
+* Define explicit readiness formula and signal weights.
+* Define per-scenario thresholds for `go`, `conditional`, `hold`.
+* Define downgrade rules (for example critical failure rule overrides high readiness score).
+
+## C. Operational gaps
+
+* Define config versioning and compatibility policy.
+* Define replay lineage metadata and audit trail requirements.
+* Define deterministic rounding and edge-case behavior for all metrics.
+
+---
+
+# 9. Full configurability model (files plus runtime parameters)
+
+All business-side evaluations must be tunable without code edits.
+
+## A. Required config files
+
+* `config/business_settings.yaml`
+: global defaults for metric weights, percentile targets, agreement mode, rounding.
+* `config/business_thresholds.yaml`
+: recommendation thresholds (`go`, `conditional`, `hold`) per scenario/domain.
+* `config/business_costs.yaml`
+: failure-mode cost maps and severity multipliers per scenario/domain.
+* `config/business_contract.yaml`
+: contract version, required artifact fields, compatibility rules.
+
+## B. Parameter precedence (highest to lowest)
+
+1. Runtime override parameters (CLI/API/UI).
+2. Project-level business config override.
+3. Scenario-level config in `config/business_*.yaml`.
+4. Global defaults in `config/business_settings.yaml`.
+
+## C. Runtime override requirements
+
+* Support partial override of costs (for example only `compliance` and `incorrect`).
+* Support partial override of thresholds and weights.
+* Persist an effective merged config snapshot with each decision artifact.
+* Record who/what changed parameters and when.
+
+---
+
+# 10. Dynamic web UI and historical replay model
+
+The business interface must evaluate historical static runs under new parameters.
+
+## A. Historical replay principle
+
+* Raw evaluator outputs are immutable.
+* Business recalculation is pure over artifacts plus effective config.
+* No LLM call is required for replay.
+
+## B. Replay inputs
+
+* Source experiment artifact paths.
+* Optional run/date filter.
+* Effective config snapshot (base plus overrides).
+
+## C. Replay outputs
+
+* `dashboard_summary.json` (new decision view).
+* `scenario_business_summary.csv`.
+* `item_business_breakdown.csv`.
+* `replay_metadata.json` including:
+: source experiment id, config hash, replay timestamp, contract version.
+
+## D. Dynamic UI requirements
+
+* Scenario selector over historical experiments.
+* Tunable cost controls per failure mode.
+* Tunable threshold controls per decision rule.
+* Immediate recomputation and side-by-side comparison with baseline.
+* Save/load named parameter sets for governance.
+
+---
+
+# 11. Explicit recommendation logic and thresholds
+
+## A. Readiness formula
+
+Use a deterministic weighted score:
+
+`readiness = w_success * success_rate + w_stability * stability_score + w_quality * mean_score - w_risk * normalized_expected_cost - w_critical * critical_failure_rate`
+
+Constraints:
+
+* All weights are file-configurable and normalized.
+* All components are normalized into `[0, 1]` before aggregation.
+
+## B. Decision classes
+
+* `go` when score is above `go_threshold` and hard risk gates pass.
+* `conditional` when score is between `conditional_threshold` and `go_threshold`, or when one soft warning is present.
+* `hold` when score is below `conditional_threshold` or any hard risk gate fails.
+
+## C. Hard risk gates (configurable)
+
+* Maximum allowed `critical_failure_rate`.
+* Maximum allowed `expected_cost_per_1000`.
+* Minimum allowed agreement/stability.
+
+## D. Explainability payload
+
+Each recommendation must include:
+
+* metric contributions to final score,
+* top failing items,
+* dominant failure modes,
+* threshold proximity,
+* effective config version/hash.
+
+---
+
+# 12. Optional regulatory concern markers (major warning only)
+
+This layer adds configurable regulatory risk markers designed to raise major warnings,
+without acting as automatic deployment blockers.
+
+## A. Optional config keys
+
+Add optional keys under business config:
+
+* `regulatory_markers.enabled` (bool)
+* `regulatory_markers.default_severity` (enum, default: `major_warning`)
+* `regulatory_markers.domains` (list)
+: examples: `data_protection`, `financial_disclosure`, `health_claims`, `consumer_rights`.
+* `regulatory_markers.rules` (list of rule objects)
+* `regulatory_markers.rule_overrides_by_scenario` (optional mapping)
+
+Each rule should support:
+
+* `rule_id`
+* `domain`
+* `match_failure_modes` (list)
+* `match_risk_tags` (optional list)
+* `warning_threshold` (rate/score threshold)
+* `lookback_scope` (`item`, `scenario`, `experiment`)
+* `message_template`
+* `owner` (governance contact)
+
+## B. Decision behavior (non-blocking)
+
+When a regulatory marker rule is triggered:
+
+* attach warning status `major_warning` to outputs,
+* include rule id/domain and affected items,
+* include recommended mitigation text,
+* do not force `hold` by itself.
+
+Recommendation interaction:
+
+* `go` can remain `go` with one or more major warnings,
+* if a warning plus existing hard-risk gate fails, normal hard-gate logic still applies,
+* `conditional` should list triggered regulatory markers as primary review reasons.
+
+## C. Output contract additions
+
+Add to business output:
+
+* `regulatory_markers.total_triggered`
+* `regulatory_markers.highest_severity`
+* `regulatory_markers.items[]` with:
+  * `rule_id`
+  * `domain`
+  * `status` (`major_warning`)
+  * `trigger_metric`
+  * `threshold`
+  * `affected_item_ids`
+  * `recommended_action`
+
+## D. Governance and UI expectations
+
+* Marker thresholds must be editable via config and runtime overrides.
+* UI must support toggling marker sets by domain.
+* UI must show warnings separately from hard blockers.
+* Every replay artifact must record marker config version/hash used for audit.
+
 
