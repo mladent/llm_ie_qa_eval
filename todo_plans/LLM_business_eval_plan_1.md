@@ -401,7 +401,7 @@ This roadmap is organized for fast implementation and clean future extraction.
 
 ## 6.1 Phase matrix
 
-### Phase 1: Contract adapter from evaluator outputs
+### Phase 1: Contract adapter from evaluator outputs ✅ Completed
 Inputs:
 * `runs.jsonl`, `document_aggregates.csv`, `corpus_summary.json`
 * optional hybrid outputs (`hybrid_component_trends.csv`, `hybrid_path_breakdown.csv`)
@@ -416,7 +416,7 @@ Expected dependencies:
 * `jsonschema` (new)
 * `PyYAML`, `pandas` (already present)
 
-### Phase 2: Business metric engine
+### Phase 2: Business metric engine ✅ Completed
 New files:
 * `business/metrics.py`
 * `business/aggregates.py`
@@ -428,7 +428,7 @@ Expected dependencies:
 * `numpy` (already used in this plan)
 * `pytest` (already present)
 
-### Phase 3: Decision layer
+### Phase 3: Decision layer ✅ Completed
 New files:
 * `business/recommender.py`
 * `business/explainability.py`
@@ -439,7 +439,7 @@ Changed files:
 Expected dependencies:
 * no mandatory new libraries
 
-### Phase 4A: Management outputs (mandatory)
+### Phase 4A: Management outputs (mandatory) ✅ Completed
 New files:
 * `business/reporting.py`
 * `run_business_evaluation.py`
@@ -449,7 +449,7 @@ Deliverables:
 * `dashboard_summary.json`
 * CSV outputs for BI
 
-### Phase 4B: Dynamic interface (optional track)
+### Phase 4B: Dynamic interface (optional track) ✅ Completed (API track)
 New files:
 * `business/api.py` (if API is enabled)
 * `business/ui_app.py` (if UI is enabled)
@@ -457,7 +457,7 @@ Expected dependencies:
 * `fastapi` + `uvicorn` (optional)
 * `streamlit` (optional)
 
-### Phase 5: Governance and hardening
+### Phase 5: Governance and hardening ✅ Completed
 New files:
 * `business/replay.py`
 * `tests/test_business_contract_regression.py`
