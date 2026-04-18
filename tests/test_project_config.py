@@ -62,3 +62,5 @@ def test_load_eval_config_supports_project_documents(tmp_path: Path) -> None:
     assert config.data.documents[0].id == "cv1"
     assert config.data.documents[0].document_path == str(document_path)
     assert config.data.documents[0].gold_path == str(gold_path)
+    assert config.hybrid.path_syntax == "jsonpath"
+    assert config.hybrid.unknown_field_policy.mode == "penalize"

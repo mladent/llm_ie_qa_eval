@@ -152,12 +152,14 @@ def compute_document_aggregate(
     prec_vals = [r.precision for r in successful]
     rec_vals = [r.recall for r in successful]
     f1_vals = [r.f1 for r in successful]
+    hybrid_vals = [r.hybrid_total_score for r in records]
     lat_vals = [r.latency_ms for r in records if r.latency_ms is not None]
     cost_vals = [r.estimated_cost for r in records if r.estimated_cost is not None]
 
     mean_p, std_p = _mean_std(prec_vals)
     mean_r, std_r = _mean_std(rec_vals)
     mean_f, std_f = _mean_std(f1_vals)
+    mean_h, std_h = _mean_std(hybrid_vals)
     lat_mean, lat_std = _mean_std(lat_vals)
     cost_mean, cost_std = _mean_std(cost_vals)
 
@@ -187,6 +189,9 @@ def compute_document_aggregate(
         precision_five_number=_five_number_summary(prec_vals),
         recall_five_number=_five_number_summary(rec_vals),
         f1_five_number=_five_number_summary(f1_vals),
+        mean_hybrid_score=mean_h,
+        std_hybrid_score=std_h,
+        ci95_hybrid_score=_ci95(std_h, n),
     )
 
 
@@ -219,12 +224,14 @@ def compute_corpus_aggregate(
     prec_vals = [r.precision for r in successful]
     rec_vals = [r.recall for r in successful]
     f1_vals = [r.f1 for r in successful]
+    hybrid_vals = [r.hybrid_total_score for r in all_records]
     lat_vals = [r.latency_ms for r in all_records if r.latency_ms is not None]
     cost_vals = [r.estimated_cost for r in all_records if r.estimated_cost is not None]
 
     mean_p, std_p = _mean_std(prec_vals)
     mean_r, std_r = _mean_std(rec_vals)
     mean_f, std_f = _mean_std(f1_vals)
+    mean_h, std_h = _mean_std(hybrid_vals)
     lat_mean, lat_std = _mean_std(lat_vals)
     cost_mean, cost_std = _mean_std(cost_vals)
 
@@ -259,4 +266,7 @@ def compute_corpus_aggregate(
         precision_five_number=_five_number_summary(prec_vals),
         recall_five_number=_five_number_summary(rec_vals),
         f1_five_number=_five_number_summary(f1_vals),
+        mean_hybrid_score=mean_h,
+        std_hybrid_score=std_h,
+        ci95_hybrid_score=_ci95(std_h, n),
     )

@@ -1,0 +1,89 @@
+{
+  "deployment_readiness": {
+    "score": 32.12,
+    "recommendation": "hold"
+  },
+  "risk": {
+    "expected_cost_per_1000": 11500.0,
+    "tail_risk_p95": 21.85,
+    "critical_failure_rate": 0.5
+  },
+  "stability": {
+    "overall": 1.0,
+    "high_variance_items": 0.0
+  },
+  "explainability": {
+    "metric_contributions": {
+      "success": 0.175,
+      "stability": 0.2,
+      "quality": 0.1062,
+      "risk": -0.12,
+      "critical": -0.04
+    },
+    "top_failing_items": [
+      {
+        "item_id": "doc2",
+        "failure_probability": 1.0,
+        "expected_cost": 23.0
+      },
+      {
+        "item_id": "doc1",
+        "failure_probability": 0.0,
+        "expected_cost": 0.0
+      }
+    ],
+    "dominant_failure_modes": [
+      {
+        "mode": "incorrect",
+        "rate": 0.5
+      },
+      {
+        "mode": "parse_error",
+        "rate": 0.5
+      },
+      {
+        "mode": "runtime_error",
+        "rate": 0.5
+      }
+    ],
+    "threshold_proximity": {
+      "to_go_threshold": 0.4088,
+      "to_conditional_threshold": 0.2288,
+      "to_max_critical_failure_rate": 0.45,
+      "to_max_expected_cost_per_1000": 5500.0,
+      "to_min_stability_score": 0.4
+    },
+    "hard_gate_failures": [
+      "critical_failure_rate",
+      "expected_cost_per_1000"
+    ],
+    "soft_warnings": [],
+    "effective_thresholds": {
+      "scenario": "default",
+      "go_threshold": 0.73,
+      "conditional_threshold": 0.55,
+      "hard_gates": {
+        "max_critical_failure_rate": 0.05,
+        "max_expected_cost_per_1000": 6000.0,
+        "min_stability_score": 0.6
+      }
+    }
+  },
+  "scenario": "default",
+  "business_contract_version": "1.0.0",
+  "business_config_version": "1.0.0",
+  "business_config_hash": "GOLDEN_HASH_PLACEHOLDER",
+  "source_experiment_dir": "GOLDEN_SOURCE_DIR_PLACEHOLDER",
+  "scenario_summary": {
+    "success_rate_mean": 0.5,
+    "stability_score": 1.0,
+    "expected_cost_per_1000": 11500.0,
+    "p95_cost": 21.849999999999998,
+    "critical_failure_rate": 0.5
+  },
+  "failure_breakdown": {
+    "incorrect": 0.5,
+    "parse_error": 0.5,
+    "runtime_error": 0.5
+  }
+}

@@ -50,6 +50,26 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "write_csv": True,
         "write_parquet": True,
     },
+    "hybrid": {
+        "enabled": False,
+        "schema_path": "config/extraction_output.schema.json",
+        "rubric_path": "config/hybrid_scoring.yaml",
+        "parse_error_behavior": "force_zero",
+        "path_syntax": "jsonpath",
+        "unknown_field_policy": {
+            "mode": "penalize",
+            "penalty_weight": 0.1,
+        },
+        "array_matching": {
+            "fallback_strategy": "best_overlap",
+        },
+        "schema_scoring": {
+            "required_weight": 0.4,
+            "type_weight": 0.3,
+            "enum_weight": 0.2,
+            "additional_properties_weight": 0.1,
+        },
+    },
 }
 
 
@@ -109,6 +129,55 @@ class ExportConfig:
 
 
 @dataclass
+class UnknownFieldPolicyConfig:
+    mode: str
+    penalty_weight: float
+
+
+@dataclass
+class ArrayMatchingConfig:
+    fallback_strategy: str
+
+
+@dataclass
+class SchemaScoringConfig:
+    required_weight: float
+    type_weight: float
+    enum_weight: float
+    additional_properties_weight: float
+
+
+@dataclass
+class ComparatorConfig:
+    name: str
+    type: str
+    enabled: bool
+    params: Dict[str, Any]
+
+
+@dataclass
+class RubricRuleConfig:
+    path: str
+    comparator: str
+    weight: float
+    options: Dict[str, Any]
+
+
+@dataclass
+class HybridScoringConfig:
+    enabled: bool
+    schema_path: str
+    rubric_path: str
+    parse_error_behavior: str
+    path_syntax: str
+    unknown_field_policy: UnknownFieldPolicyConfig
+    array_matching: ArrayMatchingConfig
+    schema_scoring: SchemaScoringConfig
+    comparators: List[ComparatorConfig]
+    rules: List[RubricRuleConfig]
+
+
+@dataclass
 class EvalConfig:
     experiment: ExperimentConfig
     data: DataConfig
@@ -116,6 +185,7 @@ class EvalConfig:
     execution: ExecutionConfig
     tracking: TrackingConfig
     exports: ExportConfig
+    hybrid: HybridScoringConfig
     config_path: str
 
 
@@ -147,6 +217,16 @@ def _load_yaml_file(path: Path) -> Dict[str, Any]:
         parsed = yaml.safe_load(handle) or {}
     if not isinstance(parsed, dict):
         raise ValueError(f"Config file '{path}' must contain a top-level mapping/object.")
+    return parsed
+
+
+def _load_optional_yaml_mapping(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as handle:
+        parsed = yaml.safe_load(handle) or {}
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Rubric file '{path}' must contain a top-level mapping/object.")
     return parsed
 
 
@@ -229,7 +309,15 @@ def _normalize_data_input_mode(
 
 
 def _validate_config(config: Dict[str, Any]) -> None:
-    required_sections = ["experiment", "data", "model", "execution", "tracking", "exports"]
+    required_sections = [
+        "experiment",
+        "data",
+        "model",
+        "execution",
+        "tracking",
+        "exports",
+        "hybrid",
+    ]
     for section in required_sections:
         if section not in config:
             raise ValueError(f"Missing required config section '{section}'.")
@@ -323,6 +411,65 @@ def _validate_config(config: Dict[str, Any]) -> None:
             f"data.prompt_path '{prompt_path}' does not exist. Provide a valid prompt path."
         )
 
+    hybrid = config["hybrid"]
+    parse_error_behavior = hybrid.get("parse_error_behavior")
+    if parse_error_behavior not in {"force_zero"}:
+        raise ValueError("hybrid.parse_error_behavior must be 'force_zero'.")
+
+    path_syntax = hybrid.get("path_syntax")
+    if path_syntax not in {"jsonpath"}:
+        raise ValueError("hybrid.path_syntax must be 'jsonpath'.")
+
+    unknown_field_policy = hybrid.get("unknown_field_policy") or {}
+    mode = unknown_field_policy.get("mode")
+    if mode not in {"ignore", "penalize", "fail_schema"}:
+        raise ValueError(
+            "hybrid.unknown_field_policy.mode must be one of: ignore, penalize, fail_schema."
+        )
+
+    penalty_weight = unknown_field_policy.get("penalty_weight", 0.0)
+    if not isinstance(penalty_weight, (int, float)) or penalty_weight < 0:
+        raise ValueError("hybrid.unknown_field_policy.penalty_weight must be a non-negative number.")
+
+    array_matching = hybrid.get("array_matching") or {}
+    fallback_strategy = array_matching.get("fallback_strategy")
+    if fallback_strategy not in {"best_overlap", "strict_non_match", "error"}:
+        raise ValueError(
+            "hybrid.array_matching.fallback_strategy must be one of: best_overlap, strict_non_match, error."
+        )
+
+    schema_scoring = hybrid.get("schema_scoring") or {}
+    schema_weights = [
+        schema_scoring.get("required_weight", 0.0),
+        schema_scoring.get("type_weight", 0.0),
+        schema_scoring.get("enum_weight", 0.0),
+        schema_scoring.get("additional_properties_weight", 0.0),
+    ]
+    if not all(isinstance(weight, (int, float)) and weight >= 0 for weight in schema_weights):
+        raise ValueError("hybrid.schema_scoring values must be non-negative numbers.")
+    if sum(schema_weights) == 0:
+        raise ValueError("hybrid.schema_scoring requires a positive total weight.")
+
+    if hybrid.get("enabled"):
+        schema_path = Path(hybrid.get("schema_path", ""))
+        rubric_path = Path(hybrid.get("rubric_path", ""))
+        if not schema_path.exists():
+            raise ValueError(
+                f"hybrid.schema_path '{schema_path}' does not exist. Provide a valid schema path."
+            )
+        if not rubric_path.exists():
+            raise ValueError(
+                f"hybrid.rubric_path '{rubric_path}' does not exist. Provide a valid rubric path."
+            )
+
+        rubric = _load_optional_yaml_mapping(rubric_path)
+        comparators = rubric.get("comparators", [])
+        rules = rubric.get("rules", [])
+        if not isinstance(comparators, list):
+            raise ValueError("Rubric key 'comparators' must be a list.")
+        if not isinstance(rules, list):
+            raise ValueError("Rubric key 'rules' must be a list.")
+
 
 def _build_data_config(data: Dict[str, Any]) -> DataConfig:
     documents = [ProjectDocumentConfig(**document) for document in data.get("documents", [])]
@@ -332,6 +479,47 @@ def _build_data_config(data: Dict[str, Any]) -> DataConfig:
         prompt_id=data["prompt_id"],
         documents=documents,
         extraction_fields=[str(field) for field in data.get("extraction_fields", [])],
+    )
+
+
+def _build_hybrid_config(hybrid: Dict[str, Any]) -> HybridScoringConfig:
+    rubric_path = Path(hybrid["rubric_path"])
+    rubric_payload = _load_optional_yaml_mapping(rubric_path)
+    comparators_payload = rubric_payload.get("comparators", [])
+    rules_payload = rubric_payload.get("rules", [])
+
+    comparators = [
+        ComparatorConfig(
+            name=str(item["name"]),
+            type=str(item["type"]),
+            enabled=bool(item.get("enabled", True)),
+            params=dict(item.get("params", {})),
+        )
+        for item in comparators_payload
+        if isinstance(item, dict)
+    ]
+    rules = [
+        RubricRuleConfig(
+            path=str(item["path"]),
+            comparator=str(item["comparator"]),
+            weight=float(item.get("weight", 1.0)),
+            options=dict(item.get("options", {})),
+        )
+        for item in rules_payload
+        if isinstance(item, dict)
+    ]
+
+    return HybridScoringConfig(
+        enabled=bool(hybrid["enabled"]),
+        schema_path=str(hybrid["schema_path"]),
+        rubric_path=str(hybrid["rubric_path"]),
+        parse_error_behavior=str(hybrid["parse_error_behavior"]),
+        path_syntax=str(hybrid["path_syntax"]),
+        unknown_field_policy=UnknownFieldPolicyConfig(**hybrid["unknown_field_policy"]),
+        array_matching=ArrayMatchingConfig(**hybrid["array_matching"]),
+        schema_scoring=SchemaScoringConfig(**hybrid["schema_scoring"]),
+        comparators=comparators,
+        rules=rules,
     )
 
 
@@ -358,5 +546,6 @@ def load_eval_config(args: Namespace) -> EvalConfig:
         execution=ExecutionConfig(**merged["execution"]),
         tracking=TrackingConfig(**merged["tracking"]),
         exports=ExportConfig(**merged["exports"]),
+        hybrid=_build_hybrid_config(merged["hybrid"]),
         config_path=str(config_path.resolve()),
     )

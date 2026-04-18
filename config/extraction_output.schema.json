@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExtractionOutput",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "programming_languages": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "programming_tools_skills": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "education_degree": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "human_languages": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "programming_languages",
+    "programming_tools_skills",
+    "education_degree",
+    "human_languages"
+  ]
+}

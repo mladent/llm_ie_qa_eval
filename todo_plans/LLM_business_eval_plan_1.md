@@ -13,6 +13,70 @@ This is designed to be:
 
 ---
 
+# 🧭 0. Integration strategy decision (single source execution plan)
+
+## Decision
+
+Build the business/management layer in the same repository first, as a **modular monolith**.
+
+This means:
+
+* one codebase and release for now
+* strict module boundaries between evaluator and business tooling
+* data-contract-first interfaces so later extraction to a separate service is easy
+
+## Why this decision now
+
+At this stage, metrics and business logic are still evolving quickly. Keeping one repo optimizes iteration speed and debugging while avoiding early API/service overhead.
+
+## Pros/cons considered
+
+### Option A: separate project + API calls to evaluator
+
+Pros:
+
+* clear ownership boundaries
+* independent deployments and scaling
+* strong contract discipline from day one
+
+Cons:
+
+* extra infra early (API versioning, auth, deployment)
+* slower iteration while metric definitions still change
+* harder debugging across service boundaries
+
+### Option B: one integrated project (chosen)
+
+Pros:
+
+* fastest feedback loop
+* easiest integration testing and refactoring
+* lower operational complexity
+
+Cons:
+
+* risk of coupling if boundaries are not enforced
+* future split requires discipline in interfaces
+
+## Non-negotiable boundary rules (to keep split possible)
+
+1. Business module consumes evaluator artifacts as contracts, not internal evaluator functions.
+2. No cross-imports from business logic into evaluator core.
+3. Version output contract explicitly (for example `business_contract_version`).
+4. Keep all business-facing payload builders under a dedicated package.
+
+## Split-later triggers
+
+Move to a separate service/project only when one or more become true:
+
+* different team ownership
+* need for independent release cadence
+* multi-tenant online serving requirements
+* scaling/economics require separate compute lifecycle
+* contract churn stabilizes and API hardening is justified
+
+---
+
 # 🧱 1. Core data model (schema)
 
 We model **runs → evaluations → aggregates → business metrics**
@@ -331,22 +395,348 @@ This pipeline directly feeds:
 
 ---
 
-# 💡 Final insight
+# 🛠️ 6. Unified execution roadmap (implementation plan)
 
-What you’ve effectively built here is:
+This roadmap is organized for fast implementation and clean future extraction.
 
-> **A probabilistic risk model over LLM behavior — not just an evaluation.**
+## 6.1 Phase matrix
 
-That’s the key shift:
+### Phase 1: Contract adapter from evaluator outputs ✅ Completed
+Inputs:
+* `runs.jsonl`, `document_aggregates.csv`, `corpus_summary.json`
+* optional hybrid outputs (`hybrid_component_trends.csv`, `hybrid_path_breakdown.csv`)
+New files:
+* `business/artifacts_loader.py`
+* `business/contracts.py`
+* `business/types.py`
+Changed files:
+* `requirements.txt`
+* `Readme.md`
+Expected dependencies:
+* `jsonschema` (new)
+* `PyYAML`, `pandas` (already present)
 
-* from “model quality measurement”
-* to **“deployment risk quantification”**
+### Phase 2: Business metric engine ✅ Completed
+New files:
+* `business/metrics.py`
+* `business/aggregates.py`
+* `tests/test_business_metrics.py`
+* `tests/test_business_adapter.py`
+Changed files:
+* `Readme.md`
+Expected dependencies:
+* `numpy` (already used in this plan)
+* `pytest` (already present)
+
+### Phase 3: Decision layer ✅ Completed
+New files:
+* `business/recommender.py`
+* `business/explainability.py`
+* `tests/test_business_recommender.py`
+Changed files:
+* `config/business_thresholds.yaml`
+* `config/business_settings.yaml`
+Expected dependencies:
+* no mandatory new libraries
+
+### Phase 4A: Management outputs (mandatory) ✅ Completed
+New files:
+* `business/reporting.py`
+* `run_business_evaluation.py`
+Changed files:
+* `Readme.md`
+Deliverables:
+* `dashboard_summary.json`
+* CSV outputs for BI
+
+### Phase 4B: Dynamic interface (optional track) ✅ Completed (API track)
+New files:
+* `business/api.py` (if API is enabled)
+* `business/ui_app.py` (if UI is enabled)
+Expected dependencies:
+* `fastapi` + `uvicorn` (optional)
+* `streamlit` (optional)
+
+### Phase 5: Governance and hardening ✅ Completed
+New files:
+* `business/replay.py`
+* `tests/test_business_contract_regression.py`
+* `tests/golden/business_outputs/` fixtures
+Changed files:
+* `config/business_contract.yaml`
+* `Readme.md`
+Deliverables:
+* versioned contracts, replay lineage, regression suite
+
+### Phase 6: Optional service extraction (deferred)
+Only after split triggers are met:
+* wrap business module behind API service
+* keep evaluator as producer and business module as consumer
+* preserve contracts unchanged to minimize migration risk
+
+## 6.2 Library decisions
+
+Core expected additions:
+* `jsonschema`
+
+Optional (only if interface track starts now):
+* `fastapi`
+* `uvicorn`
+* `streamlit`
+
+Deferred until service extraction:
+* additional API client libraries as needed
+
+## 6.3 First implementation slice
+
+Implement this minimal vertical slice first:
+
+1. Load one historical experiment from `outputs/experiments/<id>`.
+2. Map artifacts to business schema.
+3. Compute item and scenario business metrics.
+4. Apply recommendation logic with file-based thresholds.
+5. Emit `dashboard_summary.json` and one CSV.
+6. Add one regression test with golden output.
 
 ---
 
-If you want next step, I can:
+# ✅ 7. Definition of done for this plan
 
-* extend this to **LLM-as-a-judge scoring integration**
-* or plug it into **OpenAI / Gemini APIs for automatic runs**
-* or design a **Streamlit dashboard UI on top of this JSON**
+The plan is considered complete when:
+
+1. A single command can produce business decision JSON from evaluator outputs.
+2. All core metrics in Section 2 are computed and tested.
+3. Dashboard JSON in Section 3 is generated with real run data.
+4. Recommendation logic is configurable and scenario-aware.
+5. Contract tests prevent breaking downstream consumers.
+6. All business-evaluation knobs are configurable via files and runtime parameters.
+7. Historical static evaluations can be replayed with new cost/threshold settings without re-running LLM inference.
+
+---
+
+# 8. Missing implementation details (must be resolved before coding)
+
+## A. Contract and mapping gaps
+
+* Define exact mapping from evaluator artifacts (`runs.jsonl`, `document_aggregates.csv`, `corpus_summary.json`) into business-layer schema.
+* Define how business `scores` fields are derived when only evaluator metrics exist.
+* Define canonical failure taxonomy and mapping from evaluator fields to business failure modes.
+
+## B. Decision and risk gaps
+
+* Define explicit readiness formula and signal weights.
+* Define per-scenario thresholds for `go`, `conditional`, `hold`.
+* Define downgrade rules (for example critical failure rule overrides high readiness score).
+
+## C. Operational gaps
+
+* Define config versioning and compatibility policy.
+* Define replay lineage metadata and audit trail requirements.
+* Define deterministic rounding and edge-case behavior for all metrics.
+
+---
+
+# 9. Full configurability model (files plus runtime parameters)
+
+All business-side evaluations must be tunable without code edits.
+
+## A. Required config files
+
+* `config/business_settings.yaml`
+: global defaults for metric weights, percentile targets, agreement mode, rounding.
+* `config/business_thresholds.yaml`
+: recommendation thresholds (`go`, `conditional`, `hold`) per scenario/domain.
+* `config/business_costs.yaml`
+: failure-mode cost maps and severity multipliers per scenario/domain.
+* `config/business_contract.yaml`
+: contract version, required artifact fields, compatibility rules.
+
+## A1. Config schema requirements
+
+Each config file must define:
+
+* required keys
+* optional keys with defaults
+* type constraints and allowed ranges
+* compatibility version key
+
+Validation rules:
+
+* fail fast on missing required keys,
+* reject unknown keys in strict mode,
+* normalize and record effective config after merge,
+* persist `business_config_version` and `business_config_hash` in all outputs.
+
+## B. Parameter precedence (highest to lowest)
+
+1. Runtime override parameters (CLI/API/UI).
+2. Project-level business config override.
+3. Scenario-level config in `config/business_*.yaml`.
+4. Global defaults in `config/business_settings.yaml`.
+
+## C. Runtime override requirements
+
+* Support partial override of costs (for example only `compliance` and `incorrect`).
+* Support partial override of thresholds and weights.
+* Persist an effective merged config snapshot with each decision artifact.
+* Record who/what changed parameters and when.
+
+## D. Minimum keys for first implementation
+
+`config/business_settings.yaml`:
+* normalization settings
+* rounding precision
+* default metric weights
+
+`config/business_thresholds.yaml`:
+* `go_threshold`
+* `conditional_threshold`
+* hard risk gates (`critical_failure_rate`, `expected_cost_per_1000`, `stability_min`)
+
+`config/business_costs.yaml`:
+* per-scenario failure-cost map
+* default fallback costs
+
+`config/business_contract.yaml`:
+* `business_contract_version`
+* required artifact fields
+* backward compatibility policy
+
+---
+
+# 10. Dynamic web UI and historical replay model
+
+The business interface must evaluate historical static runs under new parameters.
+
+## A. Historical replay principle
+
+* Raw evaluator outputs are immutable.
+* Business recalculation is pure over artifacts plus effective config.
+* No LLM call is required for replay.
+
+## B. Replay inputs
+
+* Source experiment artifact paths.
+* Optional run/date filter.
+* Effective config snapshot (base plus overrides).
+
+## C. Replay outputs
+
+* `dashboard_summary.json` (new decision view).
+* `scenario_business_summary.csv`.
+* `item_business_breakdown.csv`.
+* `replay_metadata.json` including:
+: source experiment id, config hash, replay timestamp, contract version.
+
+## D. Dynamic UI requirements
+
+* Scenario selector over historical experiments.
+* Tunable cost controls per failure mode.
+* Tunable threshold controls per decision rule.
+* Immediate recomputation and side-by-side comparison with baseline.
+* Save/load named parameter sets for governance.
+
+---
+
+# 11. Explicit recommendation logic and thresholds
+
+## A. Readiness formula
+
+Use a deterministic weighted score:
+
+`readiness = w_success * success_rate + w_stability * stability_score + w_quality * mean_score - w_risk * normalized_expected_cost - w_critical * critical_failure_rate`
+
+Constraints:
+
+* All weights are file-configurable and normalized.
+* All components are normalized into `[0, 1]` before aggregation.
+
+## B. Decision classes
+
+* `go` when score is above `go_threshold` and hard risk gates pass.
+* `conditional` when score is between `conditional_threshold` and `go_threshold`, or when one soft warning is present.
+* `hold` when score is below `conditional_threshold` or any hard risk gate fails.
+
+## C. Hard risk gates (configurable)
+
+* Maximum allowed `critical_failure_rate`.
+* Maximum allowed `expected_cost_per_1000`.
+* Minimum allowed agreement/stability.
+
+## D. Explainability payload
+
+Each recommendation must include:
+
+* metric contributions to final score,
+* top failing items,
+* dominant failure modes,
+* threshold proximity,
+* effective config version/hash.
+
+---
+
+# 12. Optional regulatory concern markers (major warning only)
+
+This layer adds configurable regulatory risk markers designed to raise major warnings,
+without acting as automatic deployment blockers.
+
+## A. Optional config keys
+
+Add optional keys under business config:
+
+* `regulatory_markers.enabled` (bool)
+* `regulatory_markers.default_severity` (enum, default: `major_warning`)
+* `regulatory_markers.domains` (list)
+: examples: `data_protection`, `financial_disclosure`, `health_claims`, `consumer_rights`.
+* `regulatory_markers.rules` (list of rule objects)
+* `regulatory_markers.rule_overrides_by_scenario` (optional mapping)
+
+Each rule should support:
+
+* `rule_id`
+* `domain`
+* `match_failure_modes` (list)
+* `match_risk_tags` (optional list)
+* `warning_threshold` (rate/score threshold)
+* `lookback_scope` (`item`, `scenario`, `experiment`)
+* `message_template`
+* `owner` (governance contact)
+
+## B. Decision behavior (non-blocking)
+
+When a regulatory marker rule is triggered:
+
+* attach warning status `major_warning` to outputs,
+* include rule id/domain and affected items,
+* include recommended mitigation text,
+* do not force `hold` by itself.
+
+Recommendation interaction:
+
+* `go` can remain `go` with one or more major warnings,
+* if a warning plus existing hard-risk gate fails, normal hard-gate logic still applies,
+* `conditional` should list triggered regulatory markers as primary review reasons.
+
+## C. Output contract additions
+
+Add to business output:
+
+* `regulatory_markers.total_triggered`
+* `regulatory_markers.highest_severity`
+* `regulatory_markers.items[]` with:
+  * `rule_id`
+  * `domain`
+  * `status` (`major_warning`)
+  * `trigger_metric`
+  * `threshold`
+  * `affected_item_ids`
+  * `recommended_action`
+
+## D. Governance and UI expectations
+
+* Marker thresholds must be editable via config and runtime overrides.
+* UI must support toggling marker sets by domain.
+* UI must show warnings separately from hard blockers.
+* Every replay artifact must record marker config version/hash used for audit.
+
 

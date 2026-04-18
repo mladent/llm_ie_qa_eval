@@ -136,9 +136,13 @@ def test_project_config_run_writes_manifest_and_logs_project_params(
     project_manifest_path = exp_dir / "project_manifest.json"
     runs_path = exp_dir / "runs.jsonl"
     provenance_path = exp_dir / "provenance.json"
+    hybrid_component_trends_path = exp_dir / "hybrid_component_trends.csv"
+    hybrid_path_breakdown_path = exp_dir / "hybrid_path_breakdown.csv"
 
     assert project_manifest_path.exists()
     assert provenance_path.exists()
+    assert hybrid_component_trends_path.exists()
+    assert hybrid_path_breakdown_path.exists()
 
     runs_lines = [line for line in runs_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert len(runs_lines) == 2
