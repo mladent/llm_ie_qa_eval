@@ -202,7 +202,7 @@
     </div>
 
     <div id="evalError" class="alert alert-error hidden"></div>
-    <button class="btn btn-primary" id="evalBtn" onclick="evaluate()" disabled>
+    <button class="btn btn-primary" id="evalBtn" onclick="window.evaluate()" disabled>
       Evaluate
     </button>
   </div>
@@ -384,11 +384,11 @@
     const hasF1Five = [c.f1_min, c.f1_q1, c.f1_median, c.f1_q3, c.f1_max].every(v => v != null);
     const f1FiveNumber = hasF1Five
       ? `<div class="five-number">`
-        + `<div class="five-number-row"><span class="k">Min</span><span class="v">${Number(c.f1_min).toFixed(3)}</span></div>`
-        + `<div class="five-number-row"><span class="k">Q1</span><span class="v">${Number(c.f1_q1).toFixed(3)}</span></div>`
-        + `<div class="five-number-row"><span class="k">Median</span><span class="v">${Number(c.f1_median).toFixed(3)}</span></div>`
-        + `<div class="five-number-row"><span class="k">Q3</span><span class="v">${Number(c.f1_q3).toFixed(3)}</span></div>`
         + `<div class="five-number-row"><span class="k">Max</span><span class="v">${Number(c.f1_max).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Q3</span><span class="v">${Number(c.f1_q3).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Median</span><span class="v">${Number(c.f1_median).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Q1</span><span class="v">${Number(c.f1_q1).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Min</span><span class="v">${Number(c.f1_min).toFixed(3)}</span></div>`
         + `</div>`
       : '—';
     const items = [
