@@ -180,7 +180,7 @@ A Business Analyst adds a new scenario to `config/business_thresholds.yaml` and 
 │    evaluation/metrics.py              ──► precision / recall / F1   │
 │    evaluation/hybrid_scoring.py       ──► hybrid score (optional)   │
 │      ├── evaluation/hybrid_schema.py  (JSON Schema validation)      │
-│      ├── evaluation/hybrid_comparators.py (6 comparator types)      │
+│      ├── evaluation/hybrid_comparators.py (5 comparator types)      │
 │      └── evaluation/hybrid_normalize.py  (JSONPath + normalization) │
 │    evaluation/run_record.py           ──► CanonicalRunRecord        │
 │    persistence.py                     ──► runs.jsonl                │
@@ -877,6 +877,7 @@ Business evaluation adds `replay_metadata.json` with a SHA-256 hash of the effec
 | `test_metrics.py` | Precision/recall/F1, document and corpus aggregation |
 | `test_hybrid_schema.py` | Schema scoring and unknown field handling |
 | `test_hybrid_comparators.py` | All five comparator types |
+| `test_hybrid_scoring.py` | Weighted hybrid scoring, per-field score aggregation |
 | `test_analysis_and_variance.py` | Variance analysis, phase-8 questions, instability metrics |
 | `test_dataset_validation.py` | Dataset shape validation |
 | `test_provider_normalization.py` | Extraction output normalization and schema validation |
