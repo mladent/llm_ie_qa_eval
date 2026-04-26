@@ -49,6 +49,10 @@
     .info-item { background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; }
     .info-item .ilabel { font-size: 11px; color: #94a3b8; font-weight: 500; }
     .info-item .ivalue { font-size: 16px; font-weight: 700; color: #1e293b; margin-top: 2px; }
+    .five-number { margin-top: 4px; }
+    .five-number-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .five-number-row .k { color: #64748b; font-weight: 600; }
+    .five-number-row .v { color: #1e293b; font-weight: 700; }
 
     .weights-sum { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; }
     .weights-sum-ok  { background: #dcfce7; color: #15803d; }
@@ -377,12 +381,23 @@
   function renderCorpusCard(c) {
     const runsPerDoc = (c.run_count && c.document_count)
       ? Math.round(c.run_count / c.document_count) : '—';
+    const hasF1Five = [c.f1_min, c.f1_q1, c.f1_median, c.f1_q3, c.f1_max].every(v => v != null);
+    const f1FiveNumber = hasF1Five
+      ? `<div class="five-number">`
+        + `<div class="five-number-row"><span class="k">Min</span><span class="v">${Number(c.f1_min).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Q1</span><span class="v">${Number(c.f1_q1).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Median</span><span class="v">${Number(c.f1_median).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Q3</span><span class="v">${Number(c.f1_q3).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Max</span><span class="v">${Number(c.f1_max).toFixed(3)}</span></div>`
+        + `</div>`
+      : '—';
     const items = [
       { label: 'Model',            value: c.model || '—' },
       { label: 'Provider',         value: c.provider || '—' },
       { label: 'Documents',        value: c.document_count ?? '—' },
       { label: 'Runs / Doc',       value: runsPerDoc },
       { label: 'Mean F1',          value: c.mean_f1 != null ? c.mean_f1.toFixed(3) : '—' },
+      { label: 'F1 5-Number',      value: f1FiveNumber },
       { label: 'Parse Error Rate', value: c.parse_error_rate != null ? pct(c.parse_error_rate) : '—' },
       { label: 'Failure Rate',     value: c.failure_rate != null ? pct(c.failure_rate) : '—' },
     ];
