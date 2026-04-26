@@ -38,7 +38,7 @@ Current implementation status in this repository:
 - Completed: Business evaluation pipeline with reporting artifacts.
 - Completed: Replay metadata and contract regression checks.
 - Completed: Optional API runtime path for business evaluation.
-- Not implemented in this repo: Streamlit UI track (`business/ui_app.py`).
+- Completed: Browser UI for business evaluation (`business/ui_app.html`, served at `/ui`).
 
 Scope note:
 
@@ -84,7 +84,8 @@ llm_ie_eval/
 │   ├── replay.py
 │   ├── reporting.py
 │   ├── service.py
-│   └── types.py
+│   ├── types.py
+│   └── ui_app.html
 │
 ├── config/
 │   ├── business_contract.yaml
@@ -225,9 +226,12 @@ You can run an API wrapper around the business service boundary:
 python run_business_api.py --host 127.0.0.1 --port 8000
 ```
 
-Endpoint:
+Endpoints:
 
-- `POST /business/evaluate`
+- `GET /ui` (serves the browser UI)
+- `GET /business/experiment-info` (loads `corpus_summary.json` for UI metadata preview)
+- `POST /business/evaluate-inline` (evaluate with inline costs/weights/thresholds and return YAML blocks)
+- `POST /business/evaluate` (existing file-driven evaluation endpoint)
 
 Example payload:
 
@@ -238,6 +242,34 @@ Example payload:
    "write_artifacts": true
 }
 ```
+
+Inline evaluation payload example:
+
+```json
+{
+   "experiment_dir": "outputs/experiments/exp-0837df5b02be",
+   "scenario_name": "balanced_custom",
+   "costs": {
+      "parse_error": 10,
+      "runtime_error": 8,
+      "incorrect": 5
+   },
+   "weights": {
+      "success": 0.35,
+      "stability": 0.20,
+      "quality": 0.25,
+      "risk": 0.12,
+      "critical": 0.08
+   },
+   "go_threshold": 0.73,
+   "conditional_threshold": 0.55,
+   "max_critical_failure_rate": 0.05,
+   "max_expected_cost_per_1000": 6000,
+   "min_stability_score": 0.60
+}
+```
+
+To use the browser UI after starting the API server, open `http://127.0.0.1:8000/ui`.
 
 `fastapi` and `uvicorn` are optional dependencies for this runtime path.
 
