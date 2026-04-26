@@ -13,6 +13,7 @@ Deterministic evaluation, probabilistic risk modeling, and decision support for 
 ## TOC
 
 - Project Status
+- Documentation
 - Public Repo Requirements
 - Architecture Overview
 - Pipeline Overview
@@ -43,6 +44,10 @@ Scope note:
 
 - Sections under Easy Future Extensions are roadmap ideas, not shipped features.
 
+## Documentation
+
+For full architecture details, data schemas, CLI reference, business logic, and AI agent conventions, see [PRD.md](PRD.md).
+
 ## Public Repo Requirements
 
 For public repository usage, install one of these dependency sets:
@@ -69,21 +74,27 @@ Public artifact expectations:
 llm_ie_eval/
 │
 ├── business/
-│   ├── artifacts_loader.py
-│   ├── metrics.py
 │   ├── aggregates.py
+│   ├── api.py
+│   ├── artifacts_loader.py
+│   ├── contracts.py
+│   ├── explainability.py
+│   ├── metrics.py
 │   ├── recommender.py
-│   ├── reporting.py
 │   ├── replay.py
+│   ├── reporting.py
 │   ├── service.py
-│   └── api.py
+│   └── types.py
 │
 ├── config/
-│   ├── eval_settings.yaml
+│   ├── business_contract.yaml
+│   ├── business_costs.yaml
 │   ├── business_settings.yaml
 │   ├── business_thresholds.yaml
-│   ├── business_costs.yaml
-│   └── business_contract.yaml
+│   ├── eval_settings.yaml
+│   ├── extraction_output.schema.json
+│   ├── hybrid_scoring.yaml
+│   └── project_eval_example.yaml
 │
 ├── data/
 │   └── dataset.json
@@ -92,15 +103,28 @@ llm_ie_eval/
 │   └── extraction_prompt.txt
 │
 ├── providers/
-│   ├── openai_provider.py
-│   └── gemini_provider.py
+│   ├── gemini_provider.py
+│   ├── json_parsing.py
+│   └── openai_provider.py
 │
 ├── evaluation/
-│   └── metrics.py
+│   ├── analysis_questions.py
+│   ├── dataset_validation.py
+│   ├── hybrid_comparators.py
+│   ├── hybrid_normalize.py
+│   ├── hybrid_schema.py
+│   ├── hybrid_scoring.py
+│   ├── hybrid_types.py
+│   ├── metrics.py
+│   ├── run_record.py
+│   └── variance_analysis.py
 │
 ├── extraction/
 │   └── extractor.py
 │
+├── config_loader.py
+├── mlflow_utils.py
+├── persistence.py
 ├── run_evaluation.py
 ├── run_business_evaluation.py
 ├── run_business_api.py
@@ -315,7 +339,7 @@ hybrid:
 
 `config/hybrid_scoring.yaml` defines:
 
-- comparator catalog (`exact_match`, `set_jaccard_match`, `fuzzy_lexical_match`, `key_based_array_object_match`)
+- comparator catalog (`exact_match`, `set_jaccard_match`, `fuzzy_lexical_match`, `key_based_array_object_match`, `best_overlap_fallback_match`)
 - per-path rules with JSONPath selectors and per-rule weights
 
 Run-level outputs include hybrid fields in `runs.jsonl`:
