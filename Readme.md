@@ -1,8 +1,19 @@
-# LLM Information Extraction Evaluation Platform
+# LLM Evaluation and Probabilistic Risk Decision Platform
+
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-pytest%20passing-brightgreen.svg)](#project-status)
+[![Business%20Risk](https://img.shields.io/badge/business%20risk-modeling-enabled.svg)](#project-status)
+[![API](https://img.shields.io/badge/api-fastapi%20optional-0ea5e9.svg)](#optional-api-runtime)
+[![Contracts](https://img.shields.io/badge/contracts-regression%20covered-6f42c1.svg)](#project-status)
+
+Deterministic evaluation, probabilistic risk modeling, and decision support for LLM behavior in business workflows.
+
 
 ---
 ## TOC
 
+- Project Status
+- Public Repo Requirements
 - Architecture Overview
 - Pipeline Overview
 - Run the Platform
@@ -16,6 +27,41 @@
 - Easy Future Extensions
 
 ---
+
+## Project Status
+
+Current implementation status in this repository:
+
+- Completed: Core evaluator pipeline with precision/recall/F1 outputs.
+- Completed: Hybrid JSON rubric scoring modules and integration path.
+- Completed: Business evaluation pipeline with reporting artifacts.
+- Completed: Replay metadata and contract regression checks.
+- Completed: Optional API runtime path for business evaluation.
+- Not implemented in this repo: Streamlit UI track (`business/ui_app.py`).
+
+Scope note:
+
+- Sections under Easy Future Extensions are roadmap ideas, not shipped features.
+
+## Public Repo Requirements
+
+For public repository usage, install one of these dependency sets:
+
+- Core runtime and tests:
+   - `pip install -r requirements.txt`
+- Optional API runtime:
+   - `pip install -r requirements-api.txt`
+
+Required environment setup:
+
+- Copy `.env-template` to `.env` and provide provider API keys.
+- Use a Python virtual environment (recommended `.venv`).
+
+Public artifact expectations:
+
+- Evaluator outputs are written under `outputs/experiments/<experiment-id>/`.
+- Business outputs are written under `outputs/experiments/<experiment-id>/business/`.
+- API dependencies are optional and separated from core requirements.
 
 ## Architecture Overview
 
