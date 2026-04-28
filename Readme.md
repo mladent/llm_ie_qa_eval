@@ -6,7 +6,26 @@
 [![API](https://img.shields.io/badge/api-fastapi%20optional-0ea5e9.svg)](#optional-api-runtime)
 [![Contracts](https://img.shields.io/badge/contracts-regression%20covered-6f42c1.svg)](#project-status)
 
-Deterministic evaluation, probabilistic risk modeling, and decision support for LLM behavior in business workflows.
+Aggregate metrics can mislead. A system reporting 0.83 precision across a document corpus
+can still fail catastrophically on 20% of inputs, and those failures are exactly
+what end users notice.
+
+This platform evaluates LLM-based structured information extraction using a
+5-number summary (min, Q1, median, Q3, max) per field and per document,
+alongside precision/recall/F1 and an optional hybrid JSON rubric scoring layer.
+The goal is to make worst-case behavior visible and traceable before it reaches
+production, and to keep evaluation runs reproducible across model versions,
+providers, and prompt iterations.
+
+**What this is:** A working evaluation and business-decision platform for LLM
+information extraction tasks, designed around the principle that distribution
+shape matters more than averages. Runs are YAML-configured, MLflow-tracked,
+provider-agnostic (OpenAI and Gemini included), and include a business
+evaluation layer with reporting artifacts, optional API runtime, and browser UI.
+
+**What this is not:** A polished open-source product. It is a structured
+engineering sample built to solve a specific class of evaluation and risk
+decision problem.
 
 
 ---
