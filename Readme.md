@@ -234,6 +234,42 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
 
 Then open `http://127.0.0.1:5000` in your browser.
 
+### Metrics logged
+
+**Per run** (step = global run index):
+
+- `run_precision`, `run_recall`, `run_f1`
+- `run_hybrid_total_score`, `run_hybrid_schema_score`, `run_hybrid_value_score`, `run_hybrid_unknown_penalty`, `run_hybrid_rule_coverage`
+- `run_exact_match_with_gold`, `run_parse_success`, `run_parse_error`, `run_schema_error`, `run_provider_error`
+- `run_latency_ms`, `run_estimated_cost`, `run_input_tokens`, `run_output_tokens`
+
+**Per document** (step = document index):
+
+- `document_mean_precision`, `document_std_precision`, `document_ci95_precision`
+- `document_precision_min`, `document_precision_q1`, `document_precision_median`, `document_precision_q3`, `document_precision_max`
+- `document_mean_recall`, `document_std_recall`, `document_ci95_recall`
+- `document_recall_min`, `document_recall_q1`, `document_recall_median`, `document_recall_q3`, `document_recall_max`
+- `document_mean_f1`, `document_std_f1`, `document_ci95_f1`
+- `document_f1_min`, `document_f1_q1`, `document_f1_median`, `document_f1_q3`, `document_f1_max`
+- `document_exact_match_consistency_rate`, `document_parse_error_rate`
+- `document_mean_hybrid_score`, `document_std_hybrid_score`, `document_ci95_hybrid_score`
+- `document_latency_mean`, `document_latency_std`, `document_cost_mean`, `document_cost_std`
+
+**Corpus** (single step):
+
+- `corpus_mean_precision`, `corpus_std_precision`, `corpus_ci95_precision`
+- `corpus_precision_min`, `corpus_precision_q1`, `corpus_precision_median`, `corpus_precision_q3`, `corpus_precision_max`
+- `corpus_mean_recall`, `corpus_std_recall`, `corpus_ci95_recall`
+- `corpus_recall_min`, `corpus_recall_q1`, `corpus_recall_median`, `corpus_recall_q3`, `corpus_recall_max`
+- `corpus_mean_f1`, `corpus_std_f1`, `corpus_ci95_f1`
+- `corpus_f1_min`, `corpus_f1_q1`, `corpus_f1_median`, `corpus_f1_q3`, `corpus_f1_max`
+- `corpus_mean_hybrid_score`, `corpus_std_hybrid_score`, `corpus_ci95_hybrid_score`
+- `corpus_exact_match_consistency_rate`, `corpus_parse_error_rate`
+- `corpus_latency_mean`, `corpus_latency_std`, `corpus_cost_mean`, `corpus_cost_std`
+- `corpus_total_failures`, `corpus_failure_rate`
+
+All experiment artifacts (runs JSONL, CSVs, Phase 8 tables, hybrid breakdowns, provenance, config snapshot) are also uploaded as MLflow artifacts.
+
 ## Run business evaluation from historical artifacts
 
 After an evaluator run completes, generate business decision artifacts from an experiment folder:
