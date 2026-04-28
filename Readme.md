@@ -45,6 +45,7 @@ decision problem.
 - Project file shape
 - Hybrid JSON Rubric Scoring
 - Expected output
+- Running tests
 - Easy Future Extensions
 
 ---
@@ -177,7 +178,18 @@ Dashboard JSON + BI CSV + Replay Metadata
 
 ### Install dependencies
 
-`pip install -r requirements.txt`
+```bash
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
+
+# Install core dependencies
+pip install -r requirements.txt
+
+# Install optional API dependencies
+pip install -r requirements-api.txt
+```
 
 ### Set API keys
 
@@ -185,7 +197,7 @@ Copy `.env-template` to `.env` and add your API keys:
 
 ```bash
 cp .env-template .env
-# Edit .env and add your actual API keys
+# Edit .env and set OPENAI_API_KEY and/or GEMINI_API_KEY
 ```
 
 ### Run evaluation
@@ -202,6 +214,48 @@ To scaffold a private local project from the `.local` template:
 scripts/new_local_eval_project.sh my-cv-project
 python run_evaluation.py --config .local/eval_projects/my-cv-project/project.yaml
 ```
+
+#### `run_evaluation.py` CLI flags
+
+| Flag | Type | Description |
+|---|---|---|
+| `--config` | str | Path to evaluation config YAML (default: `config/eval_settings.yaml`) |
+| `--provider` | str | Override: LLM provider (`openai` \| `gemini`) |
+| `--model` | str | Override: model ID |
+| `--dataset-path` | str | Override: path to dataset JSON (legacy mode) |
+| `--prompt-path` | str | Override: path to prompt template file |
+| `--prompt-id` | str | Override: prompt version identifier |
+| `--num-runs` | int | Override: number of repeated runs per document |
+| `--output-dir` | str | Override: root output directory |
+| `--experiment-name` | str | Override: MLflow experiment name |
+| `--tracking-uri` | str | Override: MLflow tracking URI |
+| `--enable-mlflow` | flag | Enable MLflow tracking |
+| `--disable-mlflow` | flag | Disable MLflow tracking |
+| `--max-retries` | int | Override: max provider retry attempts |
+| `--retry-backoff` | int | Override: base retry backoff in seconds |
+| `--temperature` | float | Override: model temperature |
+| `--top-p` | float | Override: nucleus sampling parameter |
+| `--max-tokens` | int | Override: maximum output tokens |
+
+Examples:
+
+```bash
+# Run with explicit provider and run count, MLflow off
+python run_evaluation.py --config config/eval_settings.yaml \
+  --provider gemini --model gemini-1.5-pro --num-runs 10 \
+  --disable-mlflow
+
+# Override via environment variables
+LIE_NUM_RUNS=3 LIE_PROVIDER=openai python run_evaluation.py
+```
+
+Outputs written to `outputs/experiments/<experiment-id>/`:
+- `runs.jsonl`, `failures.jsonl`
+- `document_aggregates.csv` / `document_aggregates.parquet`
+- `corpus_summary.json`
+- `provenance.json`, `config.json`
+- `phase8_analysis.json` and Phase 8 table CSVs
+- `hybrid_component_trends.csv`, `hybrid_path_breakdown.csv` (if hybrid enabled)
 
 ## MLflow tracking and UI
 
@@ -288,6 +342,35 @@ This writes:
 - `item_business_breakdown.csv`
 
 By default outputs are written to `<experiment-dir>/business`.
+
+#### `run_business_evaluation.py` CLI flags
+
+| Flag | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `--experiment-dir` | str | **Yes** | — | Path to evaluator output directory |
+| `--scenario` | str | No | `default` | Business scenario name |
+| `--settings-config` | str | No | `config/business_settings.yaml` | Business settings YAML |
+| `--thresholds-config` | str | No | `config/business_thresholds.yaml` | Business thresholds YAML |
+| `--costs-config` | str | No | `config/business_costs.yaml` | Business costs YAML |
+| `--contract-config` | str | No | `config/business_contract.yaml` | Business contract version YAML |
+| `--output-dir` | str | No | `<experiment-dir>/business` | Output directory for business artifacts |
+
+Examples:
+
+```bash
+# Named scenario
+python run_business_evaluation.py \
+  --experiment-dir outputs/experiments/exp-0837df5b02be \
+  --scenario refund_handling
+
+# Custom cost and threshold files, custom output dir
+python run_business_evaluation.py \
+  --experiment-dir outputs/experiments/exp-0837df5b02be \
+  --scenario refund_handling \
+  --thresholds-config config/custom_thresholds.yaml \
+  --costs-config config/custom_costs.yaml \
+  --output-dir /tmp/business-reports
+```
 
 ## Service boundary scaffold
 
@@ -495,6 +578,22 @@ Metrics: {'precision': 1.0, 'recall': 1.0, 'f1': 1.0}
 Precision: 0.83
 Recall: 0.78
 F1: 0.80
+```
+
+## Running tests
+
+```bash
+# All tests
+python -m pytest tests/ -q
+
+# Business layer only
+make test-business
+
+# Specific test file
+python -m pytest tests/test_business_recommender.py -v
+
+# With coverage
+python -m pytest tests/ --cov=. --cov-report=term-missing
 ```
 
 ---
