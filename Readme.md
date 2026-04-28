@@ -37,6 +37,7 @@ decision problem.
 - Architecture Overview
 - Pipeline Overview
 - Run the Platform
+- MLflow tracking and UI
 - Run business evaluation from historical artifacts
 - Service boundary scaffold
 - Optional API runtime
@@ -201,6 +202,37 @@ To scaffold a private local project from the `.local` template:
 scripts/new_local_eval_project.sh my-cv-project
 python run_evaluation.py --config .local/eval_projects/my-cv-project/project.yaml
 ```
+
+## MLflow tracking and UI
+
+MLflow is included in the core dependency set and is enabled by default in the
+sample project config.
+
+Default tracking configuration:
+
+- `tracking.enable_mlflow: true`
+- `tracking.tracking_uri: "sqlite:///mlflow.db"`
+- Artifacts under `mlruns/`
+
+Run an evaluation with tracking enabled:
+
+```bash
+python run_evaluation.py --config config/project_eval_example.yaml
+```
+
+Optional CLI overrides:
+
+- Force enable: `--enable-mlflow`
+- Force disable: `--disable-mlflow`
+- Override URI: `--tracking-uri <uri>`
+
+Start the MLflow UI against the same backend store:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
+```
+
+Then open `http://127.0.0.1:5000` in your browser.
 
 ## Run business evaluation from historical artifacts
 
