@@ -259,34 +259,65 @@ Outputs written to `outputs/experiments/<experiment-id>/`:
 
 ## MLflow tracking and UI
 
-MLflow is included in the core dependency set and is enabled by default in the
-sample project config.
+MLflow is included in the core dependency set. The default tracking store is
+**SQLite** (`mlflow.db` in the project root). All new evaluation runs are logged
+there automatically.
 
-Default tracking configuration:
+Default tracking configuration (set in all sample configs and in
+`config_loader.py`):
 
-- `tracking.enable_mlflow: true`
-- `tracking.tracking_uri: "sqlite:///mlflow.db"`
-- Artifacts under `mlruns/`
-
-Run an evaluation with tracking enabled:
-
-```bash
-python run_evaluation.py --config config/project_eval_example.yaml
+```yaml
+tracking:
+  enable_mlflow: true
+  tracking_uri: "sqlite:///mlflow.db"
 ```
 
-Optional CLI overrides:
-
-- Force enable: `--enable-mlflow`
-- Force disable: `--disable-mlflow`
-- Override URI: `--tracking-uri <uri>`
-
-Start the MLflow UI against the same backend store:
+### Start the UI (primary — SQLite store)
 
 ```bash
+# Via Makefile
+make mlflow-ui
+
+# Directly
 mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
 ```
 
 Then open `http://127.0.0.1:5000` in your browser.
+
+Change the port if needed:
+```bash
+make mlflow-ui MLFLOW_PORT=5001
+```
+
+### Access legacy file-store runs (pre-SQLite)
+
+Runs made before the SQLite migration were written to `./mlruns` (MLflow's old
+default file store). They are not visible in the SQLite UI. To browse them:
+
+```bash
+# Via Makefile
+make mlflow-ui-legacy
+
+# Directly
+mlflow ui --backend-store-uri ./mlruns --host 127.0.0.1 --port 5000
+```
+
+To log a new run into the legacy file store instead of SQLite (one-off override):
+
+```bash
+# CLI flag
+python run_evaluation.py --config config/project_eval_example.yaml \
+  --tracking-uri ./mlruns
+
+# Environment variable
+LIE_TRACKING_URI=./mlruns python run_evaluation.py
+```
+
+Other CLI overrides:
+
+- Force enable: `--enable-mlflow`
+- Force disable: `--disable-mlflow`
+- Override URI: `--tracking-uri <uri>`
 
 ### Metrics logged
 
@@ -456,6 +487,8 @@ make business-eval EXPERIMENT_DIR=outputs/experiments/exp-0837df5b02be SCENARIO=
 make business-api HOST=127.0.0.1 PORT=8000
 make business-api-smoke BASE_URL=http://127.0.0.1:8000 EXPERIMENT_DIR=outputs/experiments/exp-0837df5b02be
 make test-business
+make mlflow-ui                    # SQLite store (default)
+make mlflow-ui-legacy             # legacy file store (./mlruns)
 ```
 
 Available variables:
@@ -466,6 +499,7 @@ Available variables:
 - `HOST`
 - `PORT`
 - `BASE_URL`
+- `MLFLOW_PORT` (default: `5000`)
 
 #### API smoke script
 
