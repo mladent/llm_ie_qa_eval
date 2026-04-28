@@ -1,0 +1,15 @@
+business_config_version: "1.0.0"
+default:
+  go_threshold: 0.73
+  conditional_threshold: 0.55
+  hard_gates:
+    max_critical_failure_rate: 0.05
+    max_expected_cost_per_1000: 6000.0
+    min_stability_score: 0.6
+refund_handling:
+  go_threshold: 0.72
+  conditional_threshold: 0.5
+  hard_gates:
+    max_critical_failure_rate: 0.04
+    max_expected_cost_per_1000: 5200.0
+    min_stability_score: 0.62

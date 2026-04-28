@@ -30,3 +30,11 @@ htmlcov/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local experiment artifacts
+outputs/
+mlruns/
+mlflow.db
+
+# Local private evaluation project inputs (CVs, gold labels, per-project configs)
+.local/

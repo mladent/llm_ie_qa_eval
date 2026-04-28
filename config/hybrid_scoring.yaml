@@ -1,0 +1,49 @@
+comparators:
+  # Strict JSON-normalized equality.
+  - name: "exact"
+    type: "exact_match"
+    enabled: true
+    params: {}
+
+  # Set overlap for unordered list-like fields.
+  - name: "set_jaccard"
+    type: "set_jaccard_match"
+    enabled: true
+    params: {}
+
+  # Lexical fuzzy matching for free-text fields.
+  - name: "fuzzy_lexical"
+    type: "fuzzy_lexical_match"
+    enabled: true
+    params:
+      min_similarity: 0.85
+
+  # Array-of-object matcher with key-based identity.
+  - name: "keyed_array"
+    type: "key_based_array_object_match"
+    enabled: true
+    params:
+      default_keys: ["id", "name"]
+
+rules:
+  # JSONPath selector + comparator + local weight.
+  - path: "$.programming_languages[*]"
+    comparator: "set_jaccard"
+    weight: 0.25
+    options: {}
+
+  - path: "$.programming_tools_skills[*]"
+    comparator: "set_jaccard"
+    weight: 0.25
+    options: {}
+
+  - path: "$.human_languages[*]"
+    comparator: "set_jaccard"
+    weight: 0.2
+    options: {}
+
+  - path: "$.education_degree[*]"
+    comparator: "fuzzy_lexical"
+    weight: 0.3
+    options:
+      normalize_case: true

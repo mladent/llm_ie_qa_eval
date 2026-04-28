@@ -47,6 +47,7 @@ def write_config_snapshot(path: Path, config: EvalConfig) -> None:
         "execution": asdict(config.execution),
         "tracking": asdict(config.tracking),
         "exports": asdict(config.exports),
+        "hybrid": asdict(config.hybrid),
         "config_path": config.config_path,
     }
     with path.open("w", encoding="utf-8") as handle:
@@ -119,3 +120,17 @@ def load_runs_jsonl(path: Path) -> List[Dict[str, Any]]:
             if line.strip():
                 rows.append(json.loads(line))
     return rows
+
+
+def write_json_artifact(path: Path, payload: Dict[str, Any]) -> None:
+    """Write a JSON artifact with stable formatting for offline analysis."""
+
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=True, indent=2)
+
+
+def write_rows_csv(path: Path, rows: Iterable[Dict[str, Any]]) -> None:
+    """Write table-like rows to CSV for notebook and BI workflows."""
+
+    frame = pd.DataFrame(list(rows))
+    frame.to_csv(path, index=False)

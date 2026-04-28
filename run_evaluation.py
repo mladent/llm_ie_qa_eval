@@ -1,13 +1,18 @@
 import argparse
+import hashlib
 import json
 import time
 from collections import defaultdict
 from pathlib import Path
 import subprocess
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from config_loader import DEFAULT_SETTINGS_PATH, EvalConfig, load_eval_config
+from evaluation.dataset_validation import validate_dataset_shape
+from evaluation.hybrid_schema import load_json_schema
+from evaluation.hybrid_scoring import evaluate_hybrid
+from evaluation.analysis_questions import build_phase8_analysis
 from evaluation.metrics import (
     compute_corpus_aggregate,
     compute_document_aggregate,
@@ -22,6 +27,8 @@ from persistence import (
     write_config_snapshot,
     write_corpus_summary,
     write_document_aggregates,
+    write_json_artifact,
+    write_rows_csv,
     write_provenance,
 )
 
@@ -30,6 +37,20 @@ def load_prompt(prompt_path):
 
     with open(prompt_path, encoding="utf-8") as f:
         return f.read()
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def sha256_json(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=True, sort_keys=True).encode("utf-8")
+    ).hexdigest()
 
 
 def parse_args():
@@ -69,7 +90,7 @@ def get_git_commit_hash() -> str | None:
         return None
 
 
-def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
+def _call_with_retry(config: EvalConfig, prompt: str, expected_fields: list[str]) -> dict:
     """Call run_extraction with bounded exponential-backoff retries for transient failures."""
 
     last_exc: Optional[Exception] = None
@@ -82,6 +103,7 @@ def _call_with_retry(config: EvalConfig, prompt: str) -> dict:
                 temperature=config.model.temperature,
                 top_p=config.model.top_p,
                 max_tokens=config.model.max_tokens,
+                expected_fields=expected_fields,
             )
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
@@ -127,7 +149,84 @@ def _make_failed_run_record(
         recall=0.0,
         f1=0.0,
         exact_match_with_gold=False,
+        hybrid_total_score=0.0,
+        hybrid_schema_score=0.0,
+        hybrid_value_score=0.0,
+        hybrid_unknown_penalty=0.0,
+        hybrid_rule_coverage=0.0,
     )
+
+
+def _infer_extraction_fields(dataset: list[dict[str, Any]], configured_fields: list[str]) -> list[str]:
+    if configured_fields:
+        return configured_fields
+    first_gold = dataset[0].get("gold", {}) if dataset else {}
+    if isinstance(first_gold, dict) and first_gold:
+        return [str(key) for key in first_gold.keys()]
+    return ["methods", "tasks", "datasets"]
+
+
+def _load_dataset_from_project_spec(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    documents = []
+    manifest_documents = []
+
+    for document in config.data.documents:
+        document_path = Path(document.document_path).resolve()
+        gold_path = Path(document.gold_path).resolve()
+        document_text = document_path.read_text(encoding="utf-8")
+        gold = json.loads(gold_path.read_text(encoding="utf-8"))
+        documents.append({"id": document.id, "text": document_text, "gold": gold})
+        manifest_documents.append(
+            {
+                "id": document.id,
+                "document_path": str(document_path),
+                "document_sha256": sha256_file(document_path),
+                "gold_path": str(gold_path),
+                "gold_sha256": sha256_file(gold_path),
+            }
+        )
+
+    project_manifest = {
+        "project_config_path": str(Path(config.config_path).resolve()),
+        "prompt_path": str(Path(config.data.prompt_path).resolve()),
+        "prompt_id": config.data.prompt_id,
+        "documents": manifest_documents,
+    }
+    return documents, project_manifest
+
+
+def _load_runtime_dataset(config: EvalConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if config.data.documents:
+        dataset, project_manifest = _load_dataset_from_project_spec(config)
+        extraction_fields = _infer_extraction_fields(dataset, config.data.extraction_fields)
+        validate_dataset_shape(dataset, required_gold_fields=extraction_fields)
+        project_manifest["extraction_fields"] = extraction_fields
+        dataset_id = f"project:{Path(config.config_path).resolve()}"
+        dataset_sha256 = sha256_json(project_manifest)
+        return dataset, {
+            "input_mode": "project",
+            "dataset_id": dataset_id,
+            "dataset_sha256": dataset_sha256,
+            "document_count": len(dataset),
+            "extraction_fields": extraction_fields,
+            "project_manifest": project_manifest,
+            "project_spec_sha256": sha256_file(Path(config.config_path).resolve()),
+        }
+
+    dataset_path = Path(config.data.dataset_path or "").resolve()
+    with dataset_path.open(encoding="utf-8") as dataset_file:
+        dataset = json.load(dataset_file)
+    extraction_fields = _infer_extraction_fields(dataset, config.data.extraction_fields)
+    validate_dataset_shape(dataset, required_gold_fields=extraction_fields)
+    return dataset, {
+        "input_mode": "dataset",
+        "dataset_id": str(dataset_path),
+        "dataset_sha256": sha256_file(dataset_path),
+        "document_count": len(dataset),
+        "extraction_fields": extraction_fields,
+        "project_manifest": None,
+        "project_spec_sha256": None,
+    }
 
 
 def main():
@@ -135,22 +234,30 @@ def main():
     args = parse_args()
     config = load_eval_config(args)
 
-    with open(config.data.dataset_path, encoding="utf-8") as dataset_file:
-        dataset = json.load(dataset_file)
+    dataset, runtime_input = _load_runtime_dataset(config)
 
     prompt_template = load_prompt(config.data.prompt_path)
     experiment_id = f"exp-{uuid4().hex[:12]}"
-    dataset_id = str(Path(config.data.dataset_path).resolve())
+    dataset_id = runtime_input["dataset_id"]
+    dataset_sha256 = runtime_input["dataset_sha256"]
     prompt_path = str(Path(config.data.prompt_path).resolve())
+    prompt_sha256 = sha256_text(prompt_template)
     prompt_id = config.data.prompt_id
     evaluation_timestamp = utc_now_iso()
+    hybrid_schema = load_json_schema(config.hybrid.schema_path) if config.hybrid.enabled else {}
 
     provenance = ExperimentProvenance(
         experiment_id=experiment_id,
         experiment_name=config.experiment.name,
+        input_mode=runtime_input["input_mode"],
         dataset_path=dataset_id,
+        dataset_sha256=dataset_sha256,
         prompt_path=prompt_path,
         prompt_id=prompt_id,
+        prompt_sha256=prompt_sha256,
+        document_count=runtime_input["document_count"],
+        project_config_path=(str(Path(config.config_path).resolve()) if runtime_input["input_mode"] == "project" else None),
+        project_spec_sha256=runtime_input["project_spec_sha256"],
         provider=config.model.provider,
         model=config.model.model,
         evaluation_timestamp=evaluation_timestamp,
@@ -165,9 +272,18 @@ def main():
     document_aggregates_csv_path = experiment_dir / "document_aggregates.csv"
     document_aggregates_parquet_path = experiment_dir / "document_aggregates.parquet"
     corpus_summary_path = experiment_dir / "corpus_summary.json"
+    project_manifest_path = experiment_dir / "project_manifest.json"
+    phase8_summary_path = experiment_dir / "phase8_analysis_summary.json"
+    phase8_doc_table_path = experiment_dir / "phase8_document_analysis.csv"
+    phase8_field_table_path = experiment_dir / "phase8_field_stability.csv"
+    phase8_score_table_path = experiment_dir / "phase8_score_variation.csv"
+    hybrid_component_table_path = experiment_dir / "hybrid_component_trends.csv"
+    hybrid_path_breakdown_table_path = experiment_dir / "hybrid_path_breakdown.csv"
 
     write_provenance(provenance_path, provenance)
     write_config_snapshot(config_snapshot_path, config)
+    if runtime_input["project_manifest"] is not None:
+        write_json_artifact(project_manifest_path, runtime_input["project_manifest"])
 
     tracker = MLflowTracker(
         enabled=config.tracking.enable_mlflow,
@@ -190,21 +306,29 @@ def main():
             "provider": config.model.provider,
             "model": config.model.model,
             "prompt_id": prompt_id,
+            "prompt_sha256": prompt_sha256,
             "dataset_id": dataset_id,
+            "dataset_sha256": dataset_sha256,
             "dataset_path": config.data.dataset_path,
             "prompt_path": config.data.prompt_path,
             "num_runs": config.experiment.num_runs,
+            "input_mode": runtime_input["input_mode"],
+            "document_count": runtime_input["document_count"],
+            "project_config_path": provenance.project_config_path,
+            "project_spec_sha256": provenance.project_spec_sha256,
+            "extraction_fields": ",".join(runtime_input["extraction_fields"]),
             "max_retries": config.execution.max_retries,
             "retry_backoff_seconds": config.execution.retry_backoff_seconds,
             "temperature": config.model.temperature,
             "top_p": config.model.top_p,
             "max_tokens": config.model.max_tokens,
             "tracking_uri": config.tracking.tracking_uri,
+            "hybrid_enabled": config.hybrid.enabled,
         }
     )
 
     run_records: list[CanonicalRunRecord] = []
-    total_failures = 0
+    provider_failures = 0
 
     try:
         # 4.1 — deterministic document order, N repeated calls per document
@@ -217,9 +341,13 @@ def main():
 
                 # 4.3 — bounded retries with backoff
                 try:
-                    extraction_result = _call_with_retry(config, prompt)
+                    extraction_result = _call_with_retry(
+                        config,
+                        prompt,
+                        runtime_input["extraction_fields"],
+                    )
                 except Exception as exc:  # 4.2 — record failure, continue if allowed
-                    total_failures += 1
+                    provider_failures += 1
                     error_msg = str(exc)
                     print(f"  [FAILED] {error_msg}")
                     failed_record = _make_failed_run_record(
@@ -243,6 +371,21 @@ def main():
                 prediction = extraction_result["parsed_output_json"]
                 metrics = compute_metrics(prediction, doc["gold"])
                 exact_match_with_gold = prediction == doc["gold"]
+                if config.hybrid.enabled:
+                    hybrid_result = evaluate_hybrid(
+                        prediction,
+                        doc["gold"],
+                        rubric_rules=config.hybrid.rules,
+                        comparator_configs=config.hybrid.comparators,
+                        schema=hybrid_schema,
+                        schema_scoring=config.hybrid.schema_scoring,
+                        unknown_field_policy=config.hybrid.unknown_field_policy,
+                        parse_status=extraction_result["parse_status"],
+                        parse_error_behavior=config.hybrid.parse_error_behavior,
+                        array_fallback_strategy=config.hybrid.array_matching.fallback_strategy,
+                    )
+                else:
+                    hybrid_result = None
 
                 run_record = CanonicalRunRecord(
                     experiment_id=experiment_id,
@@ -265,18 +408,32 @@ def main():
                     recall=metrics["recall"],
                     f1=metrics["f1"],
                     exact_match_with_gold=exact_match_with_gold,
+                    hybrid_total_score=(hybrid_result.total_score if hybrid_result else 0.0),
+                    hybrid_schema_score=(hybrid_result.schema_score if hybrid_result else 0.0),
+                    hybrid_value_score=(hybrid_result.value_score if hybrid_result else 0.0),
+                    hybrid_unknown_penalty=(hybrid_result.unknown_field_penalty if hybrid_result else 0.0),
+                    hybrid_rule_coverage=(hybrid_result.rule_coverage if hybrid_result else 0.0),
                 )
 
                 run_records.append(run_record)
                 # 4.1 — persist each run immediately
                 if config.exports.write_jsonl:
                     append_run_record(runs_jsonl_path, run_record)
+                    if run_record.parse_status != "success":
+                        append_run_record(failures_jsonl_path, run_record)
                 tracker.log_run_record_metrics(run_record, step=len(run_records) - 1)
 
                 print(f"  Parse status: {run_record.parse_status}")
                 print(f"  Metrics: precision={run_record.precision:.3f}  "
                     f"recall={run_record.recall:.3f}  f1={run_record.f1:.3f}  "
                     f"exact_match={run_record.exact_match_with_gold}")
+                if config.hybrid.enabled:
+                    print(
+                        "  Hybrid: "
+                        f"total={run_record.hybrid_total_score:.3f}  "
+                        f"schema={run_record.hybrid_schema_score:.3f}  "
+                        f"value={run_record.hybrid_value_score:.3f}"
+                    )
 
         # Phase 6.2/6.3 - aggregate artifact persistence for analysis.
         by_doc: dict[str, list[CanonicalRunRecord]] = defaultdict(list)
@@ -305,10 +462,25 @@ def main():
             write_csv=config.exports.write_csv,
             write_parquet=config.exports.write_parquet,
         )
+        total_failures = sum(1 for record in run_records if record.parse_status != "success")
         write_corpus_summary(
             corpus_summary_path,
             corpus_aggregate,
             total_failures=total_failures,
+        )
+
+        phase8_analysis = build_phase8_analysis(run_records, document_aggregates)
+        write_json_artifact(phase8_summary_path, phase8_analysis)
+        write_rows_csv(phase8_doc_table_path, phase8_analysis["tables"]["document_analysis"])
+        write_rows_csv(phase8_field_table_path, phase8_analysis["tables"]["field_stability"])
+        write_rows_csv(phase8_score_table_path, phase8_analysis["tables"]["score_variation"])
+        write_rows_csv(
+            hybrid_component_table_path,
+            phase8_analysis["tables"]["hybrid_component_trends"],
+        )
+        write_rows_csv(
+            hybrid_path_breakdown_table_path,
+            phase8_analysis["tables"]["hybrid_path_breakdown"],
         )
 
         tracker.log_document_aggregates(document_aggregates)
@@ -322,15 +494,24 @@ def main():
                 failures_jsonl_path,
                 document_aggregates_csv_path,
                 document_aggregates_parquet_path,
+                project_manifest_path,
+                phase8_summary_path,
+                phase8_doc_table_path,
+                phase8_field_table_path,
+                phase8_score_table_path,
+                hybrid_component_table_path,
+                hybrid_path_breakdown_table_path,
             ]
         )
     finally:
         tracker.end()
 
-    successful_records = [r for r in run_records if r.parse_status not in ("provider_error",)]
+    successful_records = [r for r in run_records if r.parse_status == "success"]
     avg_precision = sum(r.precision for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_recall = sum(r.recall for r in successful_records) / len(successful_records) if successful_records else 0.0
     avg_f1 = sum(r.f1 for r in successful_records) / len(successful_records) if successful_records else 0.0
+    avg_hybrid = sum(r.hybrid_total_score for r in run_records) / len(run_records) if run_records else 0.0
+    total_failures = sum(1 for r in run_records if r.parse_status != "success")
     failure_rate = total_failures / len(run_records) if run_records else 0.0
 
     print("\n=== FINAL RESULTS ===")
@@ -339,12 +520,19 @@ def main():
     print("Provider:", config.model.provider)
     print("Model:", config.model.model)
     print("Dataset:", dataset_id)
+    print("Input Mode:", runtime_input["input_mode"])
+    print("Document Count:", runtime_input["document_count"])
+    print("Extraction Fields:", ", ".join(runtime_input["extraction_fields"]))
     print("Prompt ID:", prompt_id)
+    print("Prompt SHA256:", prompt_sha256)
     print("Prompt Path:", prompt_path)
+    print("Dataset SHA256:", dataset_sha256)
     print("Evaluation Timestamp:", evaluation_timestamp)
     print("Git Commit Hash:", provenance.git_commit_hash)
     print("Provenance Artifact:", str(provenance_path.resolve()))
     print("Config Snapshot:", str(config_snapshot_path.resolve()))
+    if runtime_input["project_manifest"] is not None:
+        print("Project Manifest:", str(project_manifest_path.resolve()))
     if config.exports.write_jsonl:
         print("Runs JSONL:", str(runs_jsonl_path.resolve()))
         print("Failures JSONL:", str(failures_jsonl_path.resolve()))
@@ -353,16 +541,31 @@ def main():
     if export_status["parquet_written"]:
         print("Document Aggregates Parquet:", str(document_aggregates_parquet_path.resolve()))
     print("Corpus Summary:", str(corpus_summary_path.resolve()))
+    print("Phase 8 Summary:", str(phase8_summary_path.resolve()))
+    print("Phase 8 Document Analysis:", str(phase8_doc_table_path.resolve()))
+    print("Phase 8 Field Stability:", str(phase8_field_table_path.resolve()))
+    print("Phase 8 Score Variation:", str(phase8_score_table_path.resolve()))
+    print("Hybrid Component Trends:", str(hybrid_component_table_path.resolve()))
+    print("Hybrid Path Breakdown:", str(hybrid_path_breakdown_table_path.resolve()))
     print("Tracking URI:", config.tracking.tracking_uri)
     print("MLflow Enabled:", tracker_ctx.enabled)
     if tracker_ctx.enabled:
         print("MLflow Run ID:", tracker_ctx.run_id)
+    print("-" * 72)
+    print("Run Totals")
     print(f"Total runs: {len(run_records)}  "
           f"(docs={len(dataset)}, num_runs={config.experiment.num_runs})")
     print(f"Failures: {total_failures}  failure_rate={failure_rate:.1%}")
+    print(f"Provider failures: {provider_failures}")
+    print("-" * 72)
+    print("Quality Metrics")
     print(f"Precision: {avg_precision:.4f}")
     print(f"Recall:    {avg_recall:.4f}")
     print(f"F1:        {avg_f1:.4f}")
+    if config.hybrid.enabled:
+        print(f"Hybrid:    {avg_hybrid:.4f}")
+    else:
+        print("Hybrid:    (disabled)")
 
 
 if __name__ == "__main__":

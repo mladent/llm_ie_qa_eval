@@ -32,6 +32,11 @@ class CanonicalRunRecord:
     recall: float
     f1: float
     exact_match_with_gold: bool
+    hybrid_total_score: float = 0.0
+    hybrid_schema_score: float = 0.0
+    hybrid_value_score: float = 0.0
+    hybrid_unknown_penalty: float = 0.0
+    hybrid_rule_coverage: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -43,9 +48,15 @@ class ExperimentProvenance:
 
     experiment_id: str
     experiment_name: str
+    input_mode: str
     dataset_path: str
+    dataset_sha256: str
     prompt_path: str
     prompt_id: str
+    prompt_sha256: str
+    document_count: int
+    project_config_path: Optional[str]
+    project_spec_sha256: Optional[str]
     provider: str
     model: str
     evaluation_timestamp: str
@@ -120,6 +131,9 @@ class DocumentAggregateRecord(AggregateRecordBase):
     prompt_id: str
     dataset_id: str
     run_count: int
+    mean_hybrid_score: float = 0.0
+    std_hybrid_score: float = 0.0
+    ci95_hybrid_score: float = 0.0
 
 
 @dataclass
@@ -134,6 +148,9 @@ class CorpusAggregateRecord(AggregateRecordBase):
     document_count: int
     run_count: int
     timestamp: str
+    mean_hybrid_score: float = 0.0
+    std_hybrid_score: float = 0.0
+    ci95_hybrid_score: float = 0.0
 
 
 @dataclass

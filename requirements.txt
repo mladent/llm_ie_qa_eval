@@ -4,3 +4,7 @@ pandas
 python-dotenv
 PyYAML
 mlflow
+pytest
+jsonschema
+jsonpath-ng
+rapidfuzz
