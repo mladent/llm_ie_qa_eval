@@ -23,8 +23,8 @@ shape matters more than averages. Runs are YAML-configured, MLflow-tracked,
 provider-agnostic (OpenAI and Gemini included), and include a business
 evaluation layer with reporting artifacts, optional API runtime, and browser UI.
 
-**What this is not:** A polished open-source product. It is a structured
-engineering sample built to solve a specific class of evaluation and risk
+**What this is not:** A polished open-source product. It is a reference architecture 
+for risk-aware LLMOps built to solve a specific class of evaluation and risk
 decision problem.
 
 
@@ -289,29 +289,39 @@ Change the port if needed:
 make mlflow-ui MLFLOW_PORT=5001
 ```
 
-### Access legacy file-store runs (pre-SQLite)
+### Tracking store notes
 
-Runs made before the SQLite migration were written to `./mlruns` (MLflow's old
-default file store). They are not visible in the SQLite UI. To browse them:
+In this repository, `./mlruns` is the artifact root for the SQLite-backed
+experiments. It is not a standalone file-store tracking backend, so pointing
+`mlflow ui --backend-store-uri ./mlruns` at it will fail with missing
+`meta.yaml` errors.
+
+If you need a filesystem tracking backend for one-off debugging or migration
+work, use a separate empty directory instead:
 
 ```bash
 # Via Makefile
-make mlflow-ui-legacy
+make mlflow-ui-file-store
 
 # Directly
-mlflow ui --backend-store-uri ./mlruns --host 127.0.0.1 --port 5000
+mlflow ui --backend-store-uri ./mlflow_file_store --host 127.0.0.1 --port 5000
 ```
 
-To log a new run into the legacy file store instead of SQLite (one-off override):
+To log a new run into a file-store backend instead of SQLite (one-off override):
 
 ```bash
 # CLI flag
 python run_evaluation.py --config config/project_eval_example.yaml \
-  --tracking-uri ./mlruns
+   --tracking-uri ./mlflow_file_store
 
 # Environment variable
-LIE_TRACKING_URI=./mlruns python run_evaluation.py
+LIE_TRACKING_URI=./mlflow_file_store python run_evaluation.py
 ```
+
+New runs started through this project also touch the experiment metadata in the
+SQLite store so the MLflow UI experiment list reflects recent activity instead
+of the original experiment creation timestamp. If the UI is already open, reload
+the browser page after a run completes.
 
 Other CLI overrides:
 
@@ -488,7 +498,7 @@ make business-api HOST=127.0.0.1 PORT=8000
 make business-api-smoke BASE_URL=http://127.0.0.1:8000 EXPERIMENT_DIR=outputs/experiments/exp-0837df5b02be
 make test-business
 make mlflow-ui                    # SQLite store (default)
-make mlflow-ui-legacy             # legacy file store (./mlruns)
+make mlflow-ui-file-store         # optional filesystem tracking backend
 ```
 
 Available variables:
@@ -500,6 +510,7 @@ Available variables:
 - `PORT`
 - `BASE_URL`
 - `MLFLOW_PORT` (default: `5000`)
+- `MLFLOW_FILE_STORE_DIR` (default: `mlflow_file_store`)
 
 #### API smoke script
 

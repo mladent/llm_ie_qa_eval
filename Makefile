@@ -5,8 +5,9 @@ HOST ?= 127.0.0.1
 PORT ?= 8000
 BASE_URL ?= http://$(HOST):$(PORT)
 MLFLOW_PORT ?= 5000
+MLFLOW_FILE_STORE_DIR ?= mlflow_file_store
 
-.PHONY: business-eval business-api business-api-smoke test-business mlflow-ui mlflow-ui-legacy
+.PHONY: business-eval business-api business-api-smoke test-business mlflow-ui mlflow-ui-file-store
 
 business-eval:
 	$(PYTHON) run_business_evaluation.py --experiment-dir $(EXPERIMENT_DIR) --scenario $(SCENARIO)
@@ -23,5 +24,5 @@ test-business:
 mlflow-ui:
 	mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port $(MLFLOW_PORT)
 
-mlflow-ui-legacy:
-	mlflow ui --backend-store-uri ./mlruns --host 127.0.0.1 --port $(MLFLOW_PORT)
+mlflow-ui-file-store:
+	mlflow ui --backend-store-uri ./$(MLFLOW_FILE_STORE_DIR) --host 127.0.0.1 --port $(MLFLOW_PORT)
