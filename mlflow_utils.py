@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
@@ -54,6 +55,7 @@ class MLflowTracker:
         mlflow.set_tracking_uri(self.tracking_uri)
         mlflow.set_experiment(self.experiment_name)
         run = mlflow.start_run(run_name=self.run_name)
+        self._touch_experiment_last_update_time(getattr(run.info, "experiment_id", None))
         self._active = True
         self._run_id = run.info.run_id
 
@@ -66,6 +68,40 @@ class MLflowTracker:
         if self._active and self._mlflow is not None:
             self._mlflow.end_run()
         self._active = False
+
+    def _touch_experiment_last_update_time(self, experiment_id: Optional[str]) -> None:
+        """Keep the MLflow experiment list aligned with recent run activity.
+
+        MLflow's SQL-backed create_run path does not update the experiment row's
+        last_update_time, so the UI experiment table can look stale even when new
+        runs have been recorded. This best-effort touch is limited to the local
+        SQLAlchemy store and safely no-ops for other backends.
+        """
+
+        if self._mlflow is None or experiment_id is None:
+            return
+
+        try:
+            client = self._mlflow.tracking.MlflowClient()
+            store = client._tracking_client.store
+            managed_session_maker = getattr(store, "ManagedSessionMaker", None)
+            if store.__class__.__name__ != "SqlAlchemyStore" or managed_session_maker is None:
+                return
+
+            from mlflow.store.tracking.dbmodels.models import SqlExperiment  # type: ignore[import-not-found]
+
+            with managed_session_maker() as session:
+                experiment = (
+                    session.query(SqlExperiment)
+                    .filter(SqlExperiment.experiment_id == int(experiment_id))
+                    .one_or_none()
+                )
+                if experiment is None:
+                    return
+                experiment.last_update_time = int(time.time() * 1000)
+                session.add(experiment)
+        except Exception:
+            return
 
     def log_global_params(self, params: Dict[str, Any]) -> None:
         if not self._active or self._mlflow is None:
