@@ -20,6 +20,7 @@
 
     .path-row { display: flex; gap: 8px; }
     .path-row input { flex: 1; }
+    .path-row select { flex: 1; }
 
     .form-section { margin-bottom: 18px; }
     .form-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; }
@@ -115,6 +116,12 @@
   <!-- ── Step 1: Load Experiment ── -->
   <div class="card">
     <div class="card-title"><span class="step-badge">1</span> Load Experiment</div>
+    <div class="path-row" style="margin-bottom:8px;">
+      <select id="experimentSelect" onchange="selectExperiment()">
+        <option value="">Loading experiments…</option>
+      </select>
+      <button class="btn btn-outline" onclick="refreshExperiments()">Refresh</button>
+    </div>
     <div class="path-row">
       <input type="text" id="experimentDir" placeholder="outputs/experiments/exp-0837df5b02be" />
       <button class="btn btn-primary" onclick="loadExperiment()">Load</button>
@@ -357,6 +364,54 @@
   }
 
   // ── Step 1: Load experiment ───────────────────────────────────────────────
+  async function refreshExperiments() {
+    const errEl = document.getElementById('loadError');
+    const selectEl = document.getElementById('experimentSelect');
+    selectEl.disabled = true;
+    selectEl.innerHTML = '<option value="">Loading experiments…</option>';
+    errEl.classList.add('hidden');
+
+    try {
+      const resp = await fetch('/business/experiments');
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          showErr(errEl, 'Experiment listing endpoint is unavailable on the running server. Restart API with: python run_business_api.py --reload');
+          selectEl.innerHTML = '<option value="">No experiments available</option>';
+          return;
+        }
+        showErr(errEl, data.detail || 'Failed to list experiments.');
+        selectEl.innerHTML = '<option value="">No experiments available</option>';
+        return;
+      }
+
+      const experiments = Array.isArray(data.experiments) ? data.experiments : [];
+      if (experiments.length === 0) {
+        selectEl.innerHTML = '<option value="">No experiments found</option>';
+        return;
+      }
+
+      selectEl.innerHTML = '<option value="">Select an experiment…</option>' +
+        experiments.map(exp => {
+          const label = escapeHtml(exp.display_label || exp.experiment_dir || 'Unnamed experiment');
+          const value = escapeHtml(exp.experiment_dir || '');
+          return `<option value="${value}">${label}</option>`;
+        }).join('');
+    } catch (e) {
+      showErr(errEl, 'Network error: ' + e.message);
+      selectEl.innerHTML = '<option value="">No experiments available</option>';
+    } finally {
+      selectEl.disabled = false;
+    }
+  }
+
+  function selectExperiment() {
+    const selectEl = document.getElementById('experimentSelect');
+    const selectedDir = selectEl.value;
+    if (!selectedDir) return;
+    document.getElementById('experimentDir').value = selectedDir;
+  }
+
   async function loadExperiment() {
     const dir = document.getElementById('experimentDir').value.trim();
     const errEl = document.getElementById('loadError');
@@ -598,6 +653,14 @@
   function showErr(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
   function fmt(n) { return n != null ? Number(n).toFixed(2) : '—'; }
   function pct(n) { return n != null ? (Number(n) * 100).toFixed(1) + '%' : '—'; }
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
   function kv(obj) {
     return Object.entries(obj).map(([k, v]) =>
       `<tr><td style="color:#64748b;font-size:12px;">${k}</td><td style="font-weight:600;">${v}</td></tr>`
@@ -606,6 +669,7 @@
 
   // Init
   updateWeightSum();
+  refreshExperiments();
 </script>
 </body>
 </html>
