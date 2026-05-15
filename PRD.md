@@ -367,13 +367,35 @@ $$\text{hybrid\_total\_score} = 0.35 \times \text{schema\_score} + 0.65 \times \
 
 **What is logged**:
 - Global params: provider, model, prompt_id, dataset_id, num_runs, temperature, etc.
-- Per-run metrics (step = global run index): precision, recall, F1, hybrid scores, parse status, latency, tokens, cost.
-- Per-document aggregate metrics (step = document index): mean F1, consistency rate, hybrid scores, latency, cost.
-- Corpus aggregate metrics: final means, std, CI95 for all metrics.
+- Per-run metrics (step = global run index): precision, recall, F1, five-number summaries, hybrid scores, parse status, latency, tokens, cost.
+- Per-document aggregate metrics (step = document index): mean/std/CI95 and five-number summary (min/Q1/median/Q3/max) for precision, recall, F1; hybrid scores; parse error rate; latency; cost.
+- Corpus aggregate metrics: mean/std/CI95 and five-number summary for precision, recall, F1; hybrid scores; failure rate; latency; cost.
+
+**Tracking stores**:
+
+| Store | URI | When used |
+|---|---|---|
+| SQLite (primary) | `sqlite:///mlflow.db` | Default for all new runs |
+| File store (optional) | `./mlflow_file_store` | Explicit opt-in via `--tracking-uri ./mlflow_file_store` |
 
 **Default configuration**:
-- Tracking URI: `sqlite:///mlflow.db`
-- MLflow artifacts stored in `mlruns/`
+- Tracking URI: `sqlite:///mlflow.db` (hardcoded in `config_loader.py` defaults, `config/eval_settings.yaml`, and `config/project_eval_example.yaml`)
+- Artifacts uploaded to the active MLflow run via `log_artifact`
+- `./mlruns/` is the local artifact root for SQLite-backed experiments in this repository, not a separate tracking backend
+
+**Experiment list freshness**:
+- `MLflowTracker` explicitly updates the SQL experiment row's `last_update_time` after starting a run so the MLflow UI experiment table reflects current activity.
+
+**Using a file-store backend intentionally**:
+```bash
+# View file-store-backed runs in the UI
+make mlflow-ui-file-store
+# or: mlflow ui --backend-store-uri ./mlflow_file_store --host 127.0.0.1 --port 5000
+
+# Log a new run into the file store (override)
+python run_evaluation.py --tracking-uri ./mlflow_file_store
+# or: LIE_TRACKING_URI=./mlflow_file_store python run_evaluation.py
+```
 
 ### 6.11 Phase-8 Analysis
 
