@@ -2,12 +2,88 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from business.service import BusinessServiceRequest, run_business_service
 
 _UI_HTML_PATH = Path(__file__).parent / "ui_app.html"
+
+
+def _parse_iso_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    candidate = value.strip()
+    if candidate.endswith("Z"):
+        candidate = candidate[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _discover_experiments(base_dir: Path) -> List[Dict[str, Any]]:
+    if not base_dir.exists() or not base_dir.is_dir():
+        return []
+
+    experiments: List[Dict[str, Any]] = []
+    for child in sorted(base_dir.iterdir(), key=lambda p: p.name.lower()):
+        if not child.is_dir():
+            continue
+
+        corpus_path = child / "corpus_summary.json"
+        if not corpus_path.exists():
+            continue
+
+        timestamp_raw: str | None = None
+        parsed_timestamp: datetime | None = None
+        model: str | None = None
+        provider: str | None = None
+        try:
+            payload = json.loads(corpus_path.read_text(encoding="utf-8"))
+            timestamp_raw = payload.get("timestamp") if isinstance(payload.get("timestamp"), str) else None
+            parsed_timestamp = _parse_iso_timestamp(timestamp_raw)
+            model = str(payload.get("model")) if payload.get("model") is not None else None
+            provider = str(payload.get("provider")) if payload.get("provider") is not None else None
+        except Exception:  # noqa: BLE001
+            timestamp_raw = None
+            parsed_timestamp = None
+
+        if parsed_timestamp is None:
+            stat = child.stat()
+            parsed_timestamp = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+            timestamp_raw = parsed_timestamp.isoformat()
+
+        label_bits = [child.name, parsed_timestamp.astimezone().strftime("%Y-%m-%d %H:%M")]
+        if model:
+            label_bits.append(model)
+
+        experiments.append(
+            {
+                "experiment_id": child.name,
+                "experiment_dir": str(child),
+                "timestamp": timestamp_raw,
+                "provider": provider,
+                "model": model,
+                "display_label": " | ".join(label_bits),
+                "sort_ts": parsed_timestamp.timestamp(),
+            }
+        )
+
+    experiments.sort(
+        key=lambda item: (
+            float(item.get("sort_ts", 0.0)),
+            str(item.get("experiment_id", "")).lower(),
+        ),
+        reverse=True,
+    )
+    for item in experiments:
+        item.pop("sort_ts", None)
+    return experiments
 
 
 def _required_str(payload: Dict[str, Any], key: str) -> str:
@@ -82,6 +158,16 @@ def create_fastapi_app() -> Any:
                 status_code=500,
                 detail=f"Failed to read corpus_summary.json: {exc}",
             ) from exc
+
+    @app.get("/business/experiments")
+    def list_experiments(
+        base_dir: str = Query(
+            "outputs/experiments",
+            description="Directory containing experiment artifact folders.",
+        ),
+    ) -> Dict[str, Any]:
+        discovered = _discover_experiments(Path(base_dir))
+        return {"base_dir": base_dir, "experiments": discovered}
 
     @app.post("/business/evaluate-inline")
     def evaluate_inline(payload: Dict[str, Any]) -> Dict[str, Any]:
