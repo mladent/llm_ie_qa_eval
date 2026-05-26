@@ -39,6 +39,7 @@ decision problem.
 - Run the Platform
 - MLflow tracking and UI
 - Run business evaluation from historical artifacts
+- Why these measures
 - Service boundary scaffold
 - Optional API runtime
 - Add-ons: command aliases and smoke check
@@ -383,6 +384,31 @@ This writes:
 - `item_business_breakdown.csv`
 
 By default outputs are written to `<experiment-dir>/business`.
+
+### Why these measures
+
+The business evaluation layer uses a multi-criteria decision approach because no
+single metric captures readiness for production use in stochastic LLM systems.
+
+- Quality metrics (precision, recall, F1) estimate extraction correctness.
+- Reliability metrics (agreement and variance across repeated runs) estimate stability.
+- Impact metrics (expected cost and failure mode rates) estimate business consequences.
+- Hard gates enforce non-negotiable safety limits even when average quality is strong.
+- Weighted readiness combines the above into one interpretable decision score.
+
+This design intentionally combines:
+
+- Compensatory scoring for trade-off analysis.
+- Non-compensatory gating for risk control.
+
+Common alternatives include:
+
+Note: The alternatives below are conceptual options and are not implemented in the current codebase.
+
+- Tail-risk measures such as CVaR instead of mean expected cost.
+- Chance-corrected agreement measures (for example kappa) in addition to exact agreement.
+- Non-compensatory MCDA methods such as outranking when trade-offs should be limited.
+- Probabilistic thresholding with confidence or credible intervals for low-sample settings.
 
 #### `run_business_evaluation.py` CLI flags
 
