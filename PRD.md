@@ -32,7 +32,7 @@
 This platform provides deterministic evaluation, probabilistic risk modeling, and decision support for LLM behavior in business workflows. It answers two questions that organizations must answer before deploying an LLM-powered extraction system into production:
 
 1. **How well does the model perform?** — Measured through repeated evaluation runs with precision, recall, F1, and hybrid schema/rubric scoring.
-2. **Is it safe to deploy?** — Measured through business risk quantification: failure mode costs, deployment readiness scores, and a structured GO/CONDITIONAL/HOLD/NO_GO recommendation.
+2. **Is it safe to deploy?** — Measured through business risk quantification: failure mode costs, deployment readiness scores, and a structured GO/CONDITIONAL/HOLD recommendation.
 
 The platform is designed for teams that use LLMs for JSON information extraction tasks (e.g., CV parsing, document classification, structured data extraction). It is not a general-purpose LLM benchmark; it is a purpose-built, configuration-driven evaluation and risk pipeline that plugs into existing ML engineering workflows via CLI, file-based artifacts, optional MLflow tracking, and an optional FastAPI endpoint.
 
@@ -82,7 +82,7 @@ The platform solves both problems with a two-stage pipeline:
 |---|---|
 | Multi-run variance measurement | Run each document N times and report per-document and corpus-level variance statistics |
 | Hybrid scoring | Optional JSON Schema + rubric-based value scoring alongside precision/recall/F1 |
-| Business readiness recommendation | Configurable weighted scoring and hard gates producing GO/CONDITIONAL/HOLD/NO_GO |
+| Business readiness recommendation | Configurable weighted scoring and hard gates producing GO/CONDITIONAL/HOLD |
 | Business risk quantification | Failure mode taxonomy with per-scenario cost penalties and expected cost per 1,000 items |
 | Reproducibility | Full provenance metadata for every experiment (git commit, config hash, file SHAs) |
 | MLflow integration | Optional experiment tracking with graceful degradation when unavailable |
@@ -97,11 +97,11 @@ The platform solves both problems with a two-stage pipeline:
 |---|---|
 | Online serving / real-time inference | The platform evaluates offline; it does not serve extraction results in production |
 | Model fine-tuning | Out of scope; the platform evaluates models, it does not train them |
-| Data annotation UI | No frontend; all interaction is CLI- or file-based |
+| Data annotation UI | No annotation workflow UI; annotation is out of scope and interaction remains artifact/API driven |
 | Semantic similarity scoring (embeddings) | Current comparators are lexical; embedding-based matching is a future extension |
 | Multi-modal inputs | Text documents only |
 | Streaming evaluation | All runs are batch; no streaming output |
-| Streamlit / dashboard UI | `business/ui_app.py` is referenced but not implemented in this repository |
+| Streamlit UI track | `business/ui_app.py` is not implemented in this repository (browser UI is provided via `business/ui_app.html`) |
 
 ---
 
@@ -122,10 +122,10 @@ Reads business dashboards, interprets item-level cost breakdowns and failure mod
 #### Platform Engineer
 Integrates the business evaluation API into CI/CD or data pipelines, manages MLflow infrastructure, operates the evaluation pipeline at scale, and owns environment configuration.
 
-**Primary interactions**: `run_business_api.py`, `POST /business/evaluate`, `Makefile`, `.env`, MLflow tracking URI configuration.
+**Primary interactions**: `run_business_api.py`, `POST /business/evaluate`, `POST /business/evaluate-inline`, `GET /business/experiment-info`, `Makefile`, `.env`, MLflow tracking URI configuration.
 
 #### Management / Business Decision Makers
-Consumes the structured deployment recommendation (GO/CONDITIONAL/HOLD/NO_GO) and high-level risk and cost summaries to authorize or block production rollouts of LLM-powered extraction features.
+Consumes the structured deployment recommendation (GO/CONDITIONAL/HOLD) and high-level risk and cost summaries to authorize or block production rollouts of LLM-powered extraction features.
 
 **Primary interactions**: `dashboard_summary.json` (specifically `deployment_recommendation`, `readiness_score`, `hard_gate_failures`, `soft_warnings`), and summary reports generated from `scenario_business_summary.csv`.
 
@@ -141,7 +141,7 @@ An ML Engineer runs two separate experiments (different `model` or `prompt_id`) 
 A Platform Engineer or Business Analyst runs `run_business_evaluation.py` against an existing experiment directory for a specific business scenario (e.g., `refund_handling`) to get deployment recommendation artifacts.
 
 #### UC-4: Integrate Business Evaluation into a CI/CD Pipeline
-A Platform Engineer calls `POST /business/evaluate` against the running API server from a CI script. On `"NO_GO"` or `"HOLD"` recommendation, the pipeline is blocked.
+A Platform Engineer calls `POST /business/evaluate` against the running API server from a CI script. On `"HOLD"` recommendation (or optionally `"CONDITIONAL"`, by policy), the pipeline is blocked.
 
 #### UC-5: Authorize a Production Rollout
 A Management Decision Maker reviews `dashboard_summary.json`: checks `deployment_recommendation == "GO"`, confirms `hard_gate_failures` is empty, reviews `readiness_score` against the `go_threshold`, and signs off.
@@ -216,6 +216,9 @@ A Business Analyst adds a new scenario to `config/business_thresholds.yaml` and 
             ▼                            ▼
   business/service.py           business/api.py
   (stable service boundary)     (optional FastAPI)
+                                GET /ui
+                                GET /business/experiment-info
+                                POST /business/evaluate-inline
                                 POST /business/evaluate
 ```
 
@@ -364,13 +367,35 @@ $$\text{hybrid\_total\_score} = 0.35 \times \text{schema\_score} + 0.65 \times \
 
 **What is logged**:
 - Global params: provider, model, prompt_id, dataset_id, num_runs, temperature, etc.
-- Per-run metrics (step = global run index): precision, recall, F1, hybrid scores, parse status, latency, tokens, cost.
-- Per-document aggregate metrics (step = document index): mean F1, consistency rate, hybrid scores, latency, cost.
-- Corpus aggregate metrics: final means, std, CI95 for all metrics.
+- Per-run metrics (step = global run index): precision, recall, F1, five-number summaries, hybrid scores, parse status, latency, tokens, cost.
+- Per-document aggregate metrics (step = document index): mean/std/CI95 and five-number summary (min/Q1/median/Q3/max) for precision, recall, F1; hybrid scores; parse error rate; latency; cost.
+- Corpus aggregate metrics: mean/std/CI95 and five-number summary for precision, recall, F1; hybrid scores; failure rate; latency; cost.
+
+**Tracking stores**:
+
+| Store | URI | When used |
+|---|---|---|
+| SQLite (primary) | `sqlite:///mlflow.db` | Default for all new runs |
+| File store (optional) | `./mlflow_file_store` | Explicit opt-in via `--tracking-uri ./mlflow_file_store` |
 
 **Default configuration**:
-- Tracking URI: `sqlite:///mlflow.db`
-- MLflow artifacts stored in `mlruns/`
+- Tracking URI: `sqlite:///mlflow.db` (hardcoded in `config_loader.py` defaults, `config/eval_settings.yaml`, and `config/project_eval_example.yaml`)
+- Artifacts uploaded to the active MLflow run via `log_artifact`
+- `./mlruns/` is the local artifact root for SQLite-backed experiments in this repository, not a separate tracking backend
+
+**Experiment list freshness**:
+- `MLflowTracker` explicitly updates the SQL experiment row's `last_update_time` after starting a run so the MLflow UI experiment table reflects current activity.
+
+**Using a file-store backend intentionally**:
+```bash
+# View file-store-backed runs in the UI
+make mlflow-ui-file-store
+# or: mlflow ui --backend-store-uri ./mlflow_file_store --host 127.0.0.1 --port 5000
+
+# Log a new run into the file store (override)
+python run_evaluation.py --tracking-uri ./mlflow_file_store
+# or: LIE_TRACKING_URI=./mlflow_file_store python run_evaluation.py
+```
 
 ### 6.11 Phase-8 Analysis
 
@@ -504,7 +529,7 @@ ELIF readiness_score >= go_threshold:
 ELIF readiness_score >= conditional_threshold:
     recommendation = "CONDITIONAL"
 ELSE:
-    recommendation = "NO_GO"
+    recommendation = "HOLD"
 ```
 
 **Default thresholds** (from `config/business_thresholds.yaml`, `default` scenario):
@@ -925,14 +950,26 @@ Optional FastAPI server started via `run_business_api.py`. Requires `fastapi` an
 
 **App title**: `"Business Evaluation API"`, version `"1.0.0"`.
 
-### 10.2 Endpoint
+### 10.2 Endpoints
+
+```
+GET /ui
+GET /business/experiment-info?experiment_dir=<path>
+POST /business/evaluate-inline
+POST /business/evaluate
+```
+
+- `GET /ui`: Serves the built-in single-page business evaluation UI (`business/ui_app.html`).
+- `GET /business/experiment-info`: Returns parsed `corpus_summary.json` from `experiment_dir` for UI metadata preview.
+- `POST /business/evaluate-inline`: Runs business evaluation using inline costs, weights, and thresholds (no pre-edited YAML required).
+- `POST /business/evaluate`: Existing file-driven endpoint that reads settings/thresholds/costs from YAML config paths.
+
+### 10.3 Request Payload (`POST /business/evaluate`)
 
 ```
 POST /business/evaluate
 Content-Type: application/json
 ```
-
-### 10.3 Request Payload
 
 ```json
 {
@@ -958,7 +995,47 @@ Content-Type: application/json
 | `output_dir` | string\|null | No | `null` | Output directory; defaults to `<experiment_dir>/business` |
 | `write_artifacts` | boolean | No | `true` | Whether to write output files to disk |
 
-### 10.4 Response Payload
+### 10.4 Request Payload (`POST /business/evaluate-inline`)
+
+```json
+{
+  "experiment_dir": "outputs/experiments/exp-0837df5b02be",
+  "scenario_name": "balanced_custom",
+  "costs": {
+    "parse_error": 10,
+    "runtime_error": 8,
+    "incorrect": 5
+  },
+  "weights": {
+    "success": 0.35,
+    "stability": 0.20,
+    "quality": 0.25,
+    "risk": 0.12,
+    "critical": 0.08
+  },
+  "go_threshold": 0.73,
+  "conditional_threshold": 0.55,
+  "max_critical_failure_rate": 0.05,
+  "max_expected_cost_per_1000": 6000,
+  "min_stability_score": 0.60,
+  "cost_cap": 10000.0
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `experiment_dir` | string | **Yes** | Path to experiment artifacts directory |
+| `scenario_name` | string | No | Scenario label for inline evaluation and YAML export (`default: custom`) |
+| `costs` | object | No | Failure-mode cost mapping with keys `parse_error`, `runtime_error`, `incorrect` |
+| `weights` | object | No | Readiness weight mapping with keys `success`, `stability`, `quality`, `risk`, `critical` (must sum to 1.0 ± 0.01) |
+| `go_threshold` | number | No | Readiness threshold for `go` |
+| `conditional_threshold` | number | No | Readiness threshold for `conditional`; must be `< go_threshold` |
+| `max_critical_failure_rate` | number | No | Hard gate max critical failure rate |
+| `max_expected_cost_per_1000` | number | No | Hard gate max expected cost per 1,000 |
+| `min_stability_score` | number | No | Hard gate minimum stability score |
+| `cost_cap` | number | No | Cost normalization cap used in readiness score (`default: 10000.0`) |
+
+### 10.5 Response Payload (`POST /business/evaluate`)
 
 On success (`200 OK`), returns the serialized `BusinessServiceResponse`:
 
@@ -994,14 +1071,26 @@ On success (`200 OK`), returns the serialized `BusinessServiceResponse`:
 }
 ```
 
-### 10.5 Error Responses
+### 10.6 Response Payload (`POST /business/evaluate-inline`)
+
+On success (`200 OK`), returns:
+
+```json
+{
+  "dashboard_summary": { "...": "same structure as /business/evaluate" },
+  "thresholds_yaml": "default:\n  go_threshold: 0.73\n  ...",
+  "costs_yaml": "default:\n  parse_error: 10\n  ..."
+}
+```
+
+### 10.7 Error Responses
 
 | HTTP Status | Condition |
 |---|---|
-| `400 Bad Request` | `experiment_dir` is missing/empty, or business contract validation fails |
+| `400 Bad Request` | Invalid payload (missing/empty required fields, invalid weights/thresholds), missing experiment artifacts, or business contract validation fails |
 | `500 Internal Server Error` | Unexpected runtime error |
 
-### 10.6 Internal Service Boundary
+### 10.8 Internal Service Boundary
 
 The API is a thin adapter over `business/service.py`. The `BusinessServiceRequest` / `BusinessServiceResponse` contract is the stable boundary — it can be used directly in Python code without the API:
 
@@ -1595,7 +1684,6 @@ The full agent coding guide lives in [`AGENTS.md`](AGENTS.md) at the project roo
 | Field instability | Mean of `(1 - agreement_rate)` across all observed fields for a document. Higher = more unstable field-level outputs. |
 | Five-number summary | Statistical distribution summary: min, Q1, median, Q3, max. Computed for precision, recall, and F1 in aggregate records. |
 | GO | Deployment recommendation: all hard gates pass and readiness score ≥ `go_threshold`. |
-| NO_GO | Deployment recommendation: hard gates pass but readiness score < `conditional_threshold`. |
 | CONDITIONAL | Deployment recommendation: hard gates pass but readiness score is between `conditional_threshold` and `go_threshold`. Deploy with conditions or additional monitoring. |
 | HOLD | Deployment recommendation: one or more hard gates failed. Readiness score is irrelevant. |
 | Hard gate | A deployment blocker that forces a `"HOLD"` recommendation regardless of the readiness score. Three gates: `max_critical_failure_rate`, `max_expected_cost_per_1000`, `min_stability_score`. |

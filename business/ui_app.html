@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Evaluation — Deployment Decision Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; line-height: 1.5; }
+
+    .page { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+
+    .header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 22px 28px; border-radius: 10px; margin-bottom: 24px; }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header p { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+
+    .card { background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 16px; display: flex; align-items: center; gap: 9px; }
+    .step-badge { background: #1e40af; color: white; border-radius: 50%; width: 22px; height: 22px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+
+    .path-row { display: flex; gap: 8px; }
+    .path-row input { flex: 1; }
+    .path-row select { flex: 1; }
+
+    .form-section { margin-bottom: 18px; }
+    .form-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; }
+
+    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 12px; font-weight: 500; color: #475569; }
+    label small { font-weight: 400; color: #94a3b8; }
+
+    .label-help { display: inline-flex; align-items: center; gap: 6px; }
+    .help-wrap { position: relative; display: inline-flex; align-items: center; }
+    .help-dot {
+      width: 16px; height: 16px; border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #e2e8f0; color: #334155; font-size: 11px; font-weight: 700;
+      border: 1px solid #cbd5e1; cursor: help; user-select: none;
+    }
+    .help-dot:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.16); }
+    .help-popup {
+      display: none;
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      top: calc(100% + 8px);
+      transform: translateX(-50%);
+      width: min(290px, 75vw);
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 11px;
+      font-size: 12px;
+      line-height: 1.45;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.3);
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+    }
+    .help-popup::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -6px;
+      transform: translateX(-50%) rotate(45deg);
+      width: 10px;
+      height: 10px;
+      background: #0f172a;
+      border-left: 1px solid #1e293b;
+      border-top: 1px solid #1e293b;
+    }
+    .help-wrap:hover .help-popup,
+    .help-wrap:focus-within .help-popup { display: block; }
+
+    input[type="text"], input[type="number"] {
+      padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 13px; width: 100%; background: white; color: #1e293b;
+    }
+    input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+
+    .btn { padding: 8px 18px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, opacity .15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #1e40af; color: white; }
+    .btn-primary:hover:not(:disabled) { background: #1d3fae; }
+    .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
+    .btn-outline:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 10px; }
+    .info-item { background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; }
+    .info-item .ilabel { font-size: 11px; color: #94a3b8; font-weight: 500; }
+    .info-item .ivalue { font-size: 16px; font-weight: 700; color: #1e293b; margin-top: 2px; }
+    .five-number { margin-top: 4px; }
+    .five-number-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .five-number-row .k { color: #64748b; font-weight: 600; }
+    .five-number-row .v { color: #1e293b; font-weight: 700; }
+
+    .weights-sum { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; }
+    .weights-sum-ok  { background: #dcfce7; color: #15803d; }
+    .weights-sum-bad { background: #fee2e2; color: #b91c1c; }
+
+    .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-top: 10px; }
+    .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .alert-info  { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+
+    /* Results */
+    .rec-banner { border-radius: 8px; padding: 20px 24px; display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .rec-go          { background: #f0fdf4; border: 2px solid #16a34a; }
+    .rec-conditional { background: #fffbeb; border: 2px solid #d97706; }
+    .rec-hold        { background: #fef2f2; border: 2px solid #dc2626; }
+    .rec-label { font-size: 30px; font-weight: 800; letter-spacing: 0.04em; }
+    .rec-go          .rec-label { color: #15803d; }
+    .rec-conditional .rec-label { color: #b45309; }
+    .rec-hold        .rec-label { color: #b91c1c; }
+    .rec-score { font-size: 13px; color: #64748b; }
+    .rec-score .score-val { font-size: 22px; font-weight: 800; color: #1e293b; }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 7px 10px; background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #374151; }
+    tr:last-child td { border-bottom: none; }
+    .pos { color: #15803d; font-weight: 600; }
+    .neg { color: #b91c1c; font-weight: 600; }
+
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-pass { background: #dcfce7; color: #15803d; }
+    .badge-fail { background: #fee2e2; color: #b91c1c; }
+    .badge-warn { background: #fef9c3; color: #a16207; }
+    .gate-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 13px; color: #374151; }
+
+    .yaml-pre { background: #0f172a; color: #7dd3fc; font-family: 'Courier New', monospace; font-size: 12px; padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre; margin: 8px 0 10px; max-height: 210px; overflow-y: auto; }
+
+    hr.div { border: none; border-top: 1px solid #f1f5f9; margin: 18px 0; }
+
+    .hidden { display: none !important; }
+
+    .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.35); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 620px) {
+      .form-row, .form-row-3, .results-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Business Evaluation — Deployment Decision Tool</h1>
+    <p>Load static evaluation artifacts, define your business parameters, and receive a structured GO / CONDITIONAL / HOLD deployment recommendation.</p>
+  </div>
+
+  <!-- ── Step 1: Load Experiment ── -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">1</span> Load Experiment</div>
+    <div class="path-row" style="margin-bottom:8px;">
+      <select id="experimentSelect" onchange="selectExperiment()">
+        <option value="">Loading experiments…</option>
+      </select>
+      <button class="btn btn-outline" onclick="refreshExperiments()">Refresh</button>
+    </div>
+    <div class="path-row">
+      <input type="text" id="experimentDir" placeholder="outputs/experiments/exp-0837df5b02be" />
+      <button class="btn btn-primary" onclick="loadExperiment()">Load</button>
+    </div>
+    <div id="loadError" class="alert alert-error hidden"></div>
+    <div id="corpusCard" class="hidden" style="margin-top:14px;">
+      <div class="info-grid" id="corpusInfo"></div>
+    </div>
+  </div>
+
+  <!-- ── Step 2: Configure Scenario ── -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">2</span> Configure Scenario</div>
+
+    <!-- Scenario name + presets -->
+    <div class="form-section">
+      <div class="form-section-title">Scenario</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Scenario Name <small>(alphanumeric + underscore)</small></label>
+          <input type="text" id="scenarioName" value="custom" />
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label>Quick Presets</label>
+          <div class="btn-group">
+            <button class="btn btn-outline btn-sm" onclick="setPreset('balanced')">Balanced</button>
+            <button class="btn btn-outline btn-sm" onclick="setPreset('conservative')">Conservative</button>
+            <button class="btn btn-outline btn-sm" onclick="setPreset('aggressive')">Aggressive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Failure costs -->
+    <div class="form-section">
+      <div class="form-section-title">Failure Costs <small style="text-transform:none;letter-spacing:0;font-weight:400;">(business penalty per failed run)</small></div>
+      <div class="form-row-3">
+        <div class="field">
+          <label class="label-help">Parse Error
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Parse Error help">?</span>
+              <span class="help-popup">Cost charged when the model response cannot be parsed into valid structured output. Higher values make parser failures hurt readiness more.</span>
+            </span>
+          </label>
+          <input type="number" id="costParseError" value="10" min="0" step="0.5" />
+        </div>
+        <div class="field">
+          <label class="label-help">Runtime Error
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Runtime Error help">?</span>
+              <span class="help-popup">Cost charged when execution fails technically (timeouts, provider/API errors). Raise this when system reliability issues are expensive for your business.</span>
+            </span>
+          </label>
+          <input type="number" id="costRuntimeError" value="8" min="0" step="0.5" />
+        </div>
+        <div class="field">
+          <label class="label-help">Incorrect Output
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Incorrect Output help">?</span>
+              <span class="help-popup">Cost charged when output is valid JSON but wrong versus expected answer. Increase when wrong answers create material business risk.</span>
+            </span>
+          </label>
+          <input type="number" id="costIncorrect" value="5" min="0" step="0.5" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Readiness weights -->
+    <div class="form-section">
+      <div class="form-section-title">
+        Readiness Weights
+        <span id="weightSum" class="weights-sum weights-sum-ok">Σ = 1.000</span>
+      </div>
+      <div class="form-row-3">
+        <div class="field">
+          <label class="label-help">Success
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Success weight help">?</span>
+              <span class="help-popup">Weight for successful execution in the final readiness score. Example: 0.35 means success contributes 35% of total score impact. All weights must sum to 1.00.</span>
+            </span>
+          </label>
+          <input type="number" id="wSuccess"   value="0.35" min="0" max="1" step="0.01" oninput="updateWeightSum()" />
+        </div>
+        <div class="field">
+          <label class="label-help">Stability
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Stability weight help">?</span>
+              <span class="help-popup">Weight for consistency across repeated runs. Higher values prioritize low variance and predictable behavior over other factors.</span>
+            </span>
+          </label>
+          <input type="number" id="wStability" value="0.20" min="0" max="1" step="0.01" oninput="updateWeightSum()" />
+        </div>
+        <div class="field">
+          <label class="label-help">Quality
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Quality weight help">?</span>
+              <span class="help-popup">Weight for answer quality metrics. Increase this when correctness and output quality should dominate go/no-go decisions.</span>
+            </span>
+          </label>
+          <input type="number" id="wQuality"   value="0.25" min="0" max="1" step="0.01" oninput="updateWeightSum()" />
+        </div>
+      </div>
+      <div class="form-row" style="max-width:66%;">
+        <div class="field">
+          <label class="label-help">Risk
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Risk weight help">?</span>
+              <span class="help-popup">Weight for economic downside signals like expected cost and tail risk. Raise this when financial exposure should strongly influence deployment.</span>
+            </span>
+          </label>
+          <input type="number" id="wRisk"     value="0.12" min="0" max="1" step="0.01" oninput="updateWeightSum()" />
+        </div>
+        <div class="field">
+          <label class="label-help">Critical
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Critical weight help">?</span>
+              <span class="help-popup">Weight for severe failure patterns. Use higher values if rare but serious failures should sharply reduce readiness.</span>
+            </span>
+          </label>
+          <input type="number" id="wCritical" value="0.08" min="0" max="1" step="0.01" oninput="updateWeightSum()" />
+        </div>
+      </div>
+      <div id="weightError" class="alert alert-error hidden"></div>
+    </div>
+
+    <!-- Thresholds -->
+    <div class="form-section">
+      <div class="form-section-title">Decision Thresholds</div>
+      <div class="form-row">
+        <div class="field">
+          <label class="label-help">GO Threshold <small>(0 – 1; readiness ≥ this → GO)</small>
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="GO Threshold help">?</span>
+              <span class="help-popup">Minimum readiness score needed for an automatic GO decision. Lower it for faster adoption; raise it for stricter launch quality.</span>
+            </span>
+          </label>
+          <input type="number" id="goThreshold" value="0.73" min="0" max="1" step="0.01" />
+        </div>
+        <div class="field">
+          <label class="label-help">CONDITIONAL Threshold <small>(must be &lt; GO)</small>
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Conditional Threshold help">?</span>
+              <span class="help-popup">Lower bound for CONDITIONAL approval. Scores between this and GO indicate deployment is possible but requires safeguards or follow-up actions.</span>
+            </span>
+          </label>
+          <input type="number" id="conditionalThreshold" value="0.55" min="0" max="1" step="0.01" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Hard gates -->
+    <div class="form-section">
+      <div class="form-section-title">Hard Gates <small style="text-transform:none;letter-spacing:0;font-weight:400;">(any breach forces HOLD regardless of score)</small></div>
+      <div class="form-row-3">
+        <div class="field">
+          <label class="label-help">Max Critical Failure Rate
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Max Critical Failure Rate help">?</span>
+              <span class="help-popup">Hard upper limit for severe failures. If actual rate exceeds this value, final recommendation is forced to HOLD regardless of readiness score.</span>
+            </span>
+          </label>
+          <input type="number" id="maxCriticalRate" value="0.05" min="0" max="1" step="0.01" />
+        </div>
+        <div class="field">
+          <label class="label-help">Max Expected Cost / 1,000
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Max Expected Cost help">?</span>
+              <span class="help-popup">Maximum acceptable expected business loss per 1,000 executions. Crossing this ceiling triggers HOLD, even when other metrics look good.</span>
+            </span>
+          </label>
+          <input type="number" id="maxCost" value="6000" min="0" step="100" />
+        </div>
+        <div class="field">
+          <label class="label-help">Min Stability Score
+            <span class="help-wrap">
+              <span class="help-dot" tabindex="0" aria-label="Min Stability Score help">?</span>
+              <span class="help-popup">Minimum required consistency level. If observed stability drops below this threshold, recommendation is forced to HOLD.</span>
+            </span>
+          </label>
+          <input type="number" id="minStability" value="0.60" min="0" max="1" step="0.01" />
+        </div>
+      </div>
+    </div>
+
+    <div id="evalError" class="alert alert-error hidden"></div>
+    <button class="btn btn-primary" id="evalBtn" onclick="window.evaluate()" disabled>
+      Evaluate
+    </button>
+  </div>
+
+  <!-- ── Step 3: Results ── -->
+  <div id="resultsSection" class="hidden">
+    <div class="card">
+      <div class="card-title"><span class="step-badge">3</span> Results</div>
+
+      <div id="recBanner"></div>
+
+      <div class="results-grid">
+        <div>
+          <div class="form-section-title">Risk</div>
+          <table><tbody id="riskTable"></tbody></table>
+        </div>
+        <div>
+          <div class="form-section-title">Stability</div>
+          <table><tbody id="stabilityTable"></tbody></table>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="results-grid">
+        <div>
+          <div class="form-section-title">Hard Gates</div>
+          <div id="hardGates"></div>
+        </div>
+        <div>
+          <div class="form-section-title">Soft Warnings</div>
+          <div id="softWarnings"></div>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="results-grid">
+        <div>
+          <div class="form-section-title">Metric Contributions</div>
+          <table>
+            <thead><tr><th>Component</th><th>Contribution</th></tr></thead>
+            <tbody id="contributionsTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div class="form-section-title">Dominant Failure Modes</div>
+          <table>
+            <thead><tr><th>Mode</th><th>Rate</th></tr></thead>
+            <tbody id="failureModesTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="results-grid">
+        <div>
+          <div class="form-section-title">Top Failing Items</div>
+          <table>
+            <thead><tr><th>Item</th><th>Failure Prob.</th><th>Exp. Cost</th></tr></thead>
+            <tbody id="failingItemsTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div class="form-section-title">Threshold Proximity</div>
+          <table>
+            <thead><tr><th>Boundary</th><th>Distance</th></tr></thead>
+            <tbody id="proximityTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 4: Export ── -->
+  <div id="exportSection" class="hidden">
+    <div class="card">
+      <div class="card-title"><span class="step-badge">4</span> Export Scenario Config</div>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px;">
+        Add these YAML blocks to your project's config files to make this scenario reusable in CLI or API runs.
+      </p>
+
+      <div class="form-section-title">business_thresholds.yaml — new scenario block</div>
+      <pre class="yaml-pre" id="thresholdsYaml"></pre>
+      <button class="btn btn-outline btn-sm" onclick="downloadYaml('thresholds')">↓ Download business_thresholds.yaml</button>
+
+      <hr class="div">
+
+      <div class="form-section-title">business_costs.yaml — new scenario block</div>
+      <pre class="yaml-pre" id="costsYaml"></pre>
+      <button class="btn btn-outline btn-sm" onclick="downloadYaml('costs')">↓ Download business_costs.yaml</button>
+
+      <hr class="div">
+      <button class="btn btn-outline" onclick="resetAll()" style="margin-top:4px;">Reset All</button>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  'use strict';
+
+  let experimentLoaded = false;
+  let lastResult = null;
+
+  // ── Presets ──────────────────────────────────────────────────────────────
+  const PRESETS = {
+    balanced: {
+      costParseError: 10, costRuntimeError: 8, costIncorrect: 5,
+      wSuccess: 0.35, wStability: 0.20, wQuality: 0.25, wRisk: 0.12, wCritical: 0.08,
+      goThreshold: 0.73, conditionalThreshold: 0.55,
+      maxCriticalRate: 0.05, maxCost: 6000, minStability: 0.60,
+    },
+    conservative: {
+      costParseError: 15, costRuntimeError: 12, costIncorrect: 8,
+      wSuccess: 0.30, wStability: 0.25, wQuality: 0.20, wRisk: 0.15, wCritical: 0.10,
+      goThreshold: 0.80, conditionalThreshold: 0.65,
+      maxCriticalRate: 0.03, maxCost: 4000, minStability: 0.70,
+    },
+    aggressive: {
+      costParseError: 6, costRuntimeError: 5, costIncorrect: 3,
+      wSuccess: 0.40, wStability: 0.15, wQuality: 0.30, wRisk: 0.10, wCritical: 0.05,
+      goThreshold: 0.65, conditionalThreshold: 0.45,
+      maxCriticalRate: 0.10, maxCost: 9000, minStability: 0.50,
+    },
+  };
+
+  function setPreset(name) {
+    const p = PRESETS[name];
+    Object.keys(p).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = p[id];
+    });
+    updateWeightSum();
+  }
+
+  // ── Weight sum live validation ────────────────────────────────────────────
+  function updateWeightSum() {
+    const ids = ['wSuccess', 'wStability', 'wQuality', 'wRisk', 'wCritical'];
+    const sum = ids.reduce((acc, id) => acc + (parseFloat(document.getElementById(id).value) || 0), 0);
+    const sumEl = document.getElementById('weightSum');
+    const errEl = document.getElementById('weightError');
+    sumEl.textContent = `Σ = ${sum.toFixed(3)}`;
+    if (Math.abs(sum - 1.0) > 0.005) {
+      sumEl.className = 'weights-sum weights-sum-bad';
+      showErr(errEl, `Weights must sum to 1.00 — current total: ${sum.toFixed(3)}`);
+    } else {
+      sumEl.className = 'weights-sum weights-sum-ok';
+      errEl.classList.add('hidden');
+    }
+  }
+
+  // ── Step 1: Load experiment ───────────────────────────────────────────────
+  async function refreshExperiments() {
+    const errEl = document.getElementById('loadError');
+    const selectEl = document.getElementById('experimentSelect');
+    selectEl.disabled = true;
+    selectEl.innerHTML = '<option value="">Loading experiments…</option>';
+    errEl.classList.add('hidden');
+
+    try {
+      const resp = await fetch('/business/experiments');
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          showErr(errEl, 'Experiment listing endpoint is unavailable on the running server. Restart API with: python run_business_api.py --reload');
+          selectEl.innerHTML = '<option value="">No experiments available</option>';
+          return;
+        }
+        showErr(errEl, data.detail || 'Failed to list experiments.');
+        selectEl.innerHTML = '<option value="">No experiments available</option>';
+        return;
+      }
+
+      const experiments = Array.isArray(data.experiments) ? data.experiments : [];
+      if (experiments.length === 0) {
+        selectEl.innerHTML = '<option value="">No experiments found</option>';
+        return;
+      }
+
+      selectEl.innerHTML = '<option value="">Select an experiment…</option>' +
+        experiments.map(exp => {
+          const label = escapeHtml(exp.display_label || exp.experiment_dir || 'Unnamed experiment');
+          const value = escapeHtml(exp.experiment_dir || '');
+          return `<option value="${value}">${label}</option>`;
+        }).join('');
+    } catch (e) {
+      showErr(errEl, 'Network error: ' + e.message);
+      selectEl.innerHTML = '<option value="">No experiments available</option>';
+    } finally {
+      selectEl.disabled = false;
+    }
+  }
+
+  function selectExperiment() {
+    const selectEl = document.getElementById('experimentSelect');
+    const selectedDir = selectEl.value;
+    if (!selectedDir) return;
+    document.getElementById('experimentDir').value = selectedDir;
+  }
+
+  async function loadExperiment() {
+    const dir = document.getElementById('experimentDir').value.trim();
+    const errEl = document.getElementById('loadError');
+    errEl.classList.add('hidden');
+    document.getElementById('corpusCard').classList.add('hidden');
+
+    if (!dir) { showErr(errEl, 'Please enter an experiment directory path.'); return; }
+
+    try {
+      const resp = await fetch('/business/experiment-info?experiment_dir=' + encodeURIComponent(dir));
+      const data = await resp.json();
+      if (!resp.ok) { showErr(errEl, data.detail || 'Failed to load experiment.'); return; }
+      renderCorpusCard(data);
+      document.getElementById('corpusCard').classList.remove('hidden');
+      experimentLoaded = true;
+      document.getElementById('evalBtn').disabled = false;
+    } catch (e) {
+      showErr(errEl, 'Network error: ' + e.message);
+    }
+  }
+
+  function renderCorpusCard(c) {
+    const runsPerDoc = (c.run_count && c.document_count)
+      ? Math.round(c.run_count / c.document_count) : '—';
+    const hasF1Five = [c.f1_min, c.f1_q1, c.f1_median, c.f1_q3, c.f1_max].every(v => v != null);
+    const f1FiveNumber = hasF1Five
+      ? `<div class="five-number">`
+        + `<div class="five-number-row"><span class="k">Max</span><span class="v">${Number(c.f1_max).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Q3</span><span class="v">${Number(c.f1_q3).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Median</span><span class="v">${Number(c.f1_median).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Q1</span><span class="v">${Number(c.f1_q1).toFixed(3)}</span></div>`
+        + `<div class="five-number-row"><span class="k">Min</span><span class="v">${Number(c.f1_min).toFixed(3)}</span></div>`
+        + `</div>`
+      : '—';
+    const items = [
+      { label: 'Model',            value: c.model || '—' },
+      { label: 'Provider',         value: c.provider || '—' },
+      { label: 'Documents',        value: c.document_count ?? '—' },
+      { label: 'Runs / Doc',       value: runsPerDoc },
+      { label: 'Mean F1',          value: c.mean_f1 != null ? c.mean_f1.toFixed(3) : '—' },
+      { label: 'F1 5-Number',      value: f1FiveNumber },
+      { label: 'Parse Error Rate', value: c.parse_error_rate != null ? pct(c.parse_error_rate) : '—' },
+      { label: 'Failure Rate',     value: c.failure_rate != null ? pct(c.failure_rate) : '—' },
+    ];
+    document.getElementById('corpusInfo').innerHTML = items.map(i =>
+      `<div class="info-item"><div class="ilabel">${i.label}</div><div class="ivalue">${i.value}</div></div>`
+    ).join('');
+  }
+
+  // ── Step 2: Evaluate ──────────────────────────────────────────────────────
+  async function evaluate() {
+    const errEl = document.getElementById('evalError');
+    errEl.classList.add('hidden');
+
+    const scenarioName = document.getElementById('scenarioName').value.trim();
+    if (!scenarioName || !/^[a-zA-Z0-9_]+$/.test(scenarioName)) {
+      showErr(errEl, 'Scenario name must be non-empty and contain only letters, digits, and underscores.');
+      return;
+    }
+
+    const wIds = ['wSuccess', 'wStability', 'wQuality', 'wRisk', 'wCritical'];
+    const wSum = wIds.reduce((a, id) => a + (parseFloat(document.getElementById(id).value) || 0), 0);
+    if (Math.abs(wSum - 1.0) > 0.005) {
+      showErr(errEl, `Weights must sum to 1.00 (current: ${wSum.toFixed(3)}).`); return;
+    }
+
+    const goT   = parseFloat(document.getElementById('goThreshold').value);
+    const condT = parseFloat(document.getElementById('conditionalThreshold').value);
+    if (condT >= goT) {
+      showErr(errEl, 'CONDITIONAL threshold must be strictly less than GO threshold.'); return;
+    }
+
+    const payload = {
+      experiment_dir:   document.getElementById('experimentDir').value.trim(),
+      scenario_name:    scenarioName,
+      costs: {
+        parse_error:   parseFloat(document.getElementById('costParseError').value),
+        runtime_error: parseFloat(document.getElementById('costRuntimeError').value),
+        incorrect:     parseFloat(document.getElementById('costIncorrect').value),
+      },
+      weights: {
+        success:   parseFloat(document.getElementById('wSuccess').value),
+        stability: parseFloat(document.getElementById('wStability').value),
+        quality:   parseFloat(document.getElementById('wQuality').value),
+        risk:      parseFloat(document.getElementById('wRisk').value),
+        critical:  parseFloat(document.getElementById('wCritical').value),
+      },
+      go_threshold:              goT,
+      conditional_threshold:     condT,
+      max_critical_failure_rate: parseFloat(document.getElementById('maxCriticalRate').value),
+      max_expected_cost_per_1000: parseFloat(document.getElementById('maxCost').value),
+      min_stability_score:       parseFloat(document.getElementById('minStability').value),
+      cost_cap: 10000.0,
+    };
+
+    const btn = document.getElementById('evalBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Evaluating…';
+
+    try {
+      const resp = await fetch('/business/evaluate-inline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (!resp.ok) { showErr(errEl, data.detail || 'Evaluation failed.'); return; }
+      lastResult = data;
+      renderResults(data);
+    } catch (e) {
+      showErr(errEl, 'Network error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Evaluate';
+    }
+  }
+
+  // ── Step 3: Render results ────────────────────────────────────────────────
+  function renderResults(data) {
+    const ds  = data.dashboard_summary;
+    const dr  = ds.deployment_readiness;
+    const ex  = ds.explainability;
+    const rec = dr.recommendation;
+
+    // Recommendation banner
+    const recClass = { go: 'rec-go', conditional: 'rec-conditional', hold: 'rec-hold' }[rec] || 'rec-hold';
+    const recLabel = { go: 'GO', conditional: 'CONDITIONAL', hold: 'HOLD' }[rec] || rec.toUpperCase();
+    document.getElementById('recBanner').innerHTML =
+      `<div class="rec-banner ${recClass}">` +
+        `<div class="rec-label">${recLabel}</div>` +
+        `<div class="rec-score">Readiness Score: <span class="score-val">${dr.score.toFixed(1)}</span> / 100</div>` +
+      `</div>`;
+
+    // Risk / Stability panels
+    const risk = ds.risk || {};
+    document.getElementById('riskTable').innerHTML = kv({
+      'Expected Cost / 1,000': fmt(risk.expected_cost_per_1000),
+      'Tail Risk (P95)':       fmt(risk.tail_risk_p95),
+      'Critical Failure Rate': pct(risk.critical_failure_rate),
+    });
+    const stab = ds.stability || {};
+    document.getElementById('stabilityTable').innerHTML = kv({
+      'Overall Stability':    pct(stab.overall),
+      'High-Variance Items':  pct(stab.high_variance_items),
+    });
+
+    // Hard gates
+    const gateIds = ['critical_failure_rate', 'expected_cost_per_1000', 'stability_score'];
+    const gateLabels = {
+      critical_failure_rate:    'Critical Failure Rate',
+      expected_cost_per_1000:   'Expected Cost / 1,000',
+      stability_score:          'Stability Score',
+    };
+    const failures = new Set(ex.hard_gate_failures || []);
+    document.getElementById('hardGates').innerHTML = gateIds.map(g => {
+      const fail = failures.has(g);
+      return `<div class="gate-row">` +
+        `<span class="badge ${fail ? 'badge-fail' : 'badge-pass'}">${fail ? '✗ FAIL' : '✓ PASS'}</span>` +
+        `<span>${gateLabels[g]}</span>` +
+        `</div>`;
+    }).join('');
+
+    // Soft warnings
+    const warns = ex.soft_warnings || [];
+    document.getElementById('softWarnings').innerHTML = warns.length === 0
+      ? '<span class="badge badge-pass">None</span>'
+      : warns.map(w =>
+          `<div class="gate-row"><span class="badge badge-warn">⚠ ${w.replace(/_/g, ' ')}</span></div>`
+        ).join('');
+
+    // Metric contributions
+    const contrib = ex.metric_contributions || {};
+    document.getElementById('contributionsTable').innerHTML =
+      Object.entries(contrib).map(([k, v]) =>
+        `<tr><td>${k}</td><td class="${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${v.toFixed(4)}</td></tr>`
+      ).join('') || '<tr><td colspan="2" style="color:#94a3b8;">—</td></tr>';
+
+    // Dominant failure modes
+    const modes = ex.dominant_failure_modes || [];
+    document.getElementById('failureModesTable').innerHTML = modes.length === 0
+      ? '<tr><td colspan="2" style="color:#94a3b8;">None</td></tr>'
+      : modes.map(m => `<tr><td>${m.mode}</td><td>${pct(m.rate)}</td></tr>`).join('');
+
+    // Top failing items
+    const items = ex.top_failing_items || [];
+    document.getElementById('failingItemsTable').innerHTML = items.length === 0
+      ? '<tr><td colspan="3" style="color:#94a3b8;">None</td></tr>'
+      : items.map(i =>
+          `<tr><td>${i.item_id}</td><td>${pct(i.failure_probability)}</td><td>${fmt(i.expected_cost)}</td></tr>`
+        ).join('');
+
+    // Threshold proximity
+    const prox = ex.threshold_proximity || {};
+    document.getElementById('proximityTable').innerHTML =
+      Object.entries(prox).map(([k, v]) =>
+        `<tr><td>${k.replace(/_/g, ' ')}</td><td>${typeof v === 'number' ? v.toFixed(4) : v}</td></tr>`
+      ).join('') || '<tr><td colspan="2" style="color:#94a3b8;">—</td></tr>';
+
+    // YAML export
+    document.getElementById('thresholdsYaml').textContent = data.thresholds_yaml || '';
+    document.getElementById('costsYaml').textContent = data.costs_yaml || '';
+
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('exportSection').classList.remove('hidden');
+    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Step 4: YAML download ─────────────────────────────────────────────────
+  function downloadYaml(type) {
+    if (!lastResult) return;
+    const content  = type === 'thresholds' ? lastResult.thresholds_yaml : lastResult.costs_yaml;
+    const filename = type === 'thresholds' ? 'business_thresholds.yaml' : 'business_costs.yaml';
+    const blob = new Blob([content], { type: 'text/yaml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ── Reset ─────────────────────────────────────────────────────────────────
+  function resetAll() {
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('exportSection').classList.add('hidden');
+    document.getElementById('corpusCard').classList.add('hidden');
+    document.getElementById('loadError').classList.add('hidden');
+    document.getElementById('evalError').classList.add('hidden');
+    document.getElementById('experimentDir').value = '';
+    document.getElementById('scenarioName').value = 'custom';
+    experimentLoaded = false;
+    lastResult = null;
+    document.getElementById('evalBtn').disabled = true;
+    setPreset('balanced');
+  }
+
+  // ── Utilities ─────────────────────────────────────────────────────────────
+  function showErr(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
+  function fmt(n) { return n != null ? Number(n).toFixed(2) : '—'; }
+  function pct(n) { return n != null ? (Number(n) * 100).toFixed(1) + '%' : '—'; }
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function kv(obj) {
+    return Object.entries(obj).map(([k, v]) =>
+      `<tr><td style="color:#64748b;font-size:12px;">${k}</td><td style="font-weight:600;">${v}</td></tr>`
+    ).join('');
+  }
+
+  // Init
+  updateWeightSum();
+  refreshExperiments();
+</script>
+</body>
+</html>

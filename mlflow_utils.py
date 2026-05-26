@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
@@ -54,6 +55,7 @@ class MLflowTracker:
         mlflow.set_tracking_uri(self.tracking_uri)
         mlflow.set_experiment(self.experiment_name)
         run = mlflow.start_run(run_name=self.run_name)
+        self._touch_experiment_last_update_time(getattr(run.info, "experiment_id", None))
         self._active = True
         self._run_id = run.info.run_id
 
@@ -66,6 +68,40 @@ class MLflowTracker:
         if self._active and self._mlflow is not None:
             self._mlflow.end_run()
         self._active = False
+
+    def _touch_experiment_last_update_time(self, experiment_id: Optional[str]) -> None:
+        """Keep the MLflow experiment list aligned with recent run activity.
+
+        MLflow's SQL-backed create_run path does not update the experiment row's
+        last_update_time, so the UI experiment table can look stale even when new
+        runs have been recorded. This best-effort touch is limited to the local
+        SQLAlchemy store and safely no-ops for other backends.
+        """
+
+        if self._mlflow is None or experiment_id is None:
+            return
+
+        try:
+            client = self._mlflow.tracking.MlflowClient()
+            store = client._tracking_client.store
+            managed_session_maker = getattr(store, "ManagedSessionMaker", None)
+            if store.__class__.__name__ != "SqlAlchemyStore" or managed_session_maker is None:
+                return
+
+            from mlflow.store.tracking.dbmodels.models import SqlExperiment  # type: ignore[import-not-found]
+
+            with managed_session_maker() as session:
+                experiment = (
+                    session.query(SqlExperiment)
+                    .filter(SqlExperiment.experiment_id == int(experiment_id))
+                    .one_or_none()
+                )
+                if experiment is None:
+                    return
+                experiment.last_update_time = int(time.time() * 1000)
+                session.add(experiment)
+        except Exception:
+            return
 
     def log_global_params(self, params: Dict[str, Any]) -> None:
         if not self._active or self._mlflow is None:
@@ -113,15 +149,39 @@ class MLflowTracker:
 
         for index, agg in enumerate(aggregates):
             metrics = {
-                "document_mean_f1": float(agg.mean_f1),
                 "document_mean_precision": float(agg.mean_precision),
+                "document_std_precision": float(agg.std_precision),
+                "document_ci95_precision": float(agg.ci95_precision),
+                "document_precision_min": float(agg.precision_five_number.min),
+                "document_precision_q1": float(agg.precision_five_number.q1),
+                "document_precision_median": float(agg.precision_five_number.median),
+                "document_precision_q3": float(agg.precision_five_number.q3),
+                "document_precision_max": float(agg.precision_five_number.max),
                 "document_mean_recall": float(agg.mean_recall),
+                "document_std_recall": float(agg.std_recall),
+                "document_ci95_recall": float(agg.ci95_recall),
+                "document_recall_min": float(agg.recall_five_number.min),
+                "document_recall_q1": float(agg.recall_five_number.q1),
+                "document_recall_median": float(agg.recall_five_number.median),
+                "document_recall_q3": float(agg.recall_five_number.q3),
+                "document_recall_max": float(agg.recall_five_number.max),
+                "document_mean_f1": float(agg.mean_f1),
+                "document_std_f1": float(agg.std_f1),
+                "document_ci95_f1": float(agg.ci95_f1),
+                "document_f1_min": float(agg.f1_five_number.min),
+                "document_f1_q1": float(agg.f1_five_number.q1),
+                "document_f1_median": float(agg.f1_five_number.median),
+                "document_f1_q3": float(agg.f1_five_number.q3),
+                "document_f1_max": float(agg.f1_five_number.max),
                 "document_exact_match_consistency_rate": float(agg.exact_match_consistency_rate),
+                "document_parse_error_rate": float(agg.parse_error_rate),
                 "document_mean_hybrid_score": float(agg.mean_hybrid_score),
                 "document_std_hybrid_score": float(agg.std_hybrid_score),
-                "document_parse_error_rate": float(agg.parse_error_rate),
+                "document_ci95_hybrid_score": float(agg.ci95_hybrid_score),
                 "document_latency_mean": float(agg.latency_mean),
+                "document_latency_std": float(agg.latency_std),
                 "document_cost_mean": float(agg.cost_mean),
+                "document_cost_std": float(agg.cost_std),
             }
             self._mlflow.log_metrics(metrics, step=index)
 
@@ -133,12 +193,27 @@ class MLflowTracker:
             "corpus_mean_precision": float(aggregate.mean_precision),
             "corpus_std_precision": float(aggregate.std_precision),
             "corpus_ci95_precision": float(aggregate.ci95_precision),
+            "corpus_precision_min": float(aggregate.precision_five_number.min),
+            "corpus_precision_q1": float(aggregate.precision_five_number.q1),
+            "corpus_precision_median": float(aggregate.precision_five_number.median),
+            "corpus_precision_q3": float(aggregate.precision_five_number.q3),
+            "corpus_precision_max": float(aggregate.precision_five_number.max),
             "corpus_mean_recall": float(aggregate.mean_recall),
             "corpus_std_recall": float(aggregate.std_recall),
             "corpus_ci95_recall": float(aggregate.ci95_recall),
+            "corpus_recall_min": float(aggregate.recall_five_number.min),
+            "corpus_recall_q1": float(aggregate.recall_five_number.q1),
+            "corpus_recall_median": float(aggregate.recall_five_number.median),
+            "corpus_recall_q3": float(aggregate.recall_five_number.q3),
+            "corpus_recall_max": float(aggregate.recall_five_number.max),
             "corpus_mean_f1": float(aggregate.mean_f1),
             "corpus_std_f1": float(aggregate.std_f1),
             "corpus_ci95_f1": float(aggregate.ci95_f1),
+            "corpus_f1_min": float(aggregate.f1_five_number.min),
+            "corpus_f1_q1": float(aggregate.f1_five_number.q1),
+            "corpus_f1_median": float(aggregate.f1_five_number.median),
+            "corpus_f1_q3": float(aggregate.f1_five_number.q3),
+            "corpus_f1_max": float(aggregate.f1_five_number.max),
             "corpus_mean_hybrid_score": float(aggregate.mean_hybrid_score),
             "corpus_std_hybrid_score": float(aggregate.std_hybrid_score),
             "corpus_ci95_hybrid_score": float(aggregate.ci95_hybrid_score),
