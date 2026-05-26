@@ -2,7 +2,7 @@ experiment:
   name: "cv-recruiting-enterprise-demo"
   seed: 42
   output_dir: "outputs"
-  num_runs: 3
+  num_runs: 5
 
 data:
   prompt_path: "demo/cv_recruiting_enterprise/prompts/cv_extraction_enterprise.txt"
