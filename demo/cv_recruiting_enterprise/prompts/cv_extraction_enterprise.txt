@@ -1,0 +1,36 @@
+Extract structured recruiting information from the CV text below.
+
+Return JSON only. Do not include commentary.
+
+Output fields (all required, each must be an array of strings):
+- candidate_identity
+- profile_summary
+- total_experience_years
+- target_roles
+- core_skills
+- skill_depth_matrix
+- tools_platforms
+- cloud_devops
+- ai_ml_specializations
+- domain_experience
+- leadership_management
+- project_achievements
+- education
+- certifications
+- languages
+- soft_skills
+- recruiting_signals
+- compensation_mobility
+
+Formatting rules:
+1. Every field must be present.
+2. Every field value must be a JSON array of strings.
+3. No nested objects.
+4. Use concise evidence-grounded entries.
+5. For depth entries, use this pattern where relevant:
+   "<skill> | <years> years | <proficiency> | <context>"
+6. For leadership scope, use concrete people/process scope where available.
+7. For compensation_mobility, include location preference, notice period, and work authorization when present.
+
+Text:
+{text}

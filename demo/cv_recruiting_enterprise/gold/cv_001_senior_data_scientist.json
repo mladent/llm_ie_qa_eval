@@ -1,0 +1,102 @@
+{
+  "candidate_identity": [
+    "Elena Markovic | Senior Data Scientist | Berlin, Germany"
+  ],
+  "profile_summary": [
+    "Senior data scientist with 11 years in NLP, ranking, and regulated fintech model delivery",
+    "Combines experimentation rigor with production governance and cross-functional risk alignment"
+  ],
+  "total_experience_years": [
+    "11"
+  ],
+  "target_roles": [
+    "Senior Data Scientist",
+    "Staff Machine Learning Engineer",
+    "Applied AI Lead"
+  ],
+  "core_skills": [
+    "Python",
+    "SQL",
+    "Scala",
+    "NLP",
+    "information extraction",
+    "retrieval-augmented generation",
+    "feature engineering",
+    "model calibration",
+    "A/B testing"
+  ],
+  "skill_depth_matrix": [
+    "Python | 11 years | expert | production ML pipelines, ETL, service integration",
+    "NLP | 8 years | expert | transformer extraction and reranking in regulated flows",
+    "SQL | 11 years | advanced | analytical modeling and quality monitoring",
+    "Spark | 6 years | advanced | distributed feature processing",
+    "MLflow | 4 years | advanced | experiment tracking and model registry"
+  ],
+  "tools_platforms": [
+    "MLflow",
+    "Airflow",
+    "dbt",
+    "Spark",
+    "Docker",
+    "Kubernetes"
+  ],
+  "cloud_devops": [
+    "AWS SageMaker",
+    "AWS Lambda",
+    "AWS ECS",
+    "Terraform",
+    "Containerized deployment and governance controls"
+  ],
+  "ai_ml_specializations": [
+    "Entity extraction",
+    "Relation linking",
+    "Alert triage reranking",
+    "Weak supervision",
+    "Model drift monitoring"
+  ],
+  "domain_experience": [
+    "Fintech payments",
+    "Credit risk analytics",
+    "KYC and sanctions compliance"
+  ],
+  "leadership_management": [
+    "Mentored 4 data scientists with quarterly readiness reviews",
+    "Led cross-functional model governance with legal and risk stakeholders"
+  ],
+  "project_achievements": [
+    "Improved analyst precision from 0.61 to 0.79 for alert triage",
+    "Reduced manual annotation effort by 38% via weak supervision",
+    "Cut investigator handling time by 23%, saving approximately 420k EUR annually"
+  ],
+  "education": [
+    "MSc Data Science | Technical University of Munich | 2014",
+    "BSc Computer Science | University of Belgrade | 2012"
+  ],
+  "certifications": [
+    "AWS Certified Machine Learning - Specialty",
+    "Professional Scrum Master I"
+  ],
+  "languages": [
+    "English C2",
+    "German C1",
+    "Serbian Native"
+  ],
+  "soft_skills": [
+    "Stakeholder communication with legal and compliance",
+    "Structured problem solving",
+    "Cross-functional facilitation",
+    "Mentoring and coaching"
+  ],
+  "recruiting_signals": [
+    "Regulated environment experience with model governance ownership",
+    "Evidence of measurable business impact and cost savings",
+    "Demonstrated mentorship and leadership growth path"
+  ],
+  "compensation_mobility": [
+    "Location preference: Berlin hybrid",
+    "Travel: open to quarterly EU travel",
+    "Notice period: 2 months",
+    "Compensation expectation: 120k-140k EUR base plus bonus",
+    "Work authorization: EU citizen"
+  ]
+}

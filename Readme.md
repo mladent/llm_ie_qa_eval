@@ -209,6 +209,16 @@ Use a single project YAML file as the source of truth for the run. A sample is a
 python run_evaluation.py --config config/project_eval_example.yaml
 ```
 
+Enterprise CV recruiting demo project:
+
+```bash
+python run_evaluation.py --config demo/cv_recruiting_enterprise/project.yaml
+```
+
+This demo intentionally encodes complex recruiting details (for example years of experience,
+skill depth, leadership scope, and mobility constraints) as structured strings because the
+current evaluator contract expects each extraction field to be a list of strings.
+
 To scaffold a private local project from the `.local` template:
 
 ```bash

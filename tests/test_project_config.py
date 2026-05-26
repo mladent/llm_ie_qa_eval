@@ -64,3 +64,18 @@ def test_load_eval_config_supports_project_documents(tmp_path: Path) -> None:
     assert config.data.documents[0].gold_path == str(gold_path)
     assert config.hybrid.path_syntax == "jsonpath"
     assert config.hybrid.unknown_field_policy.mode == "penalize"
+
+
+def test_load_eval_config_supports_committed_cv_demo_project() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    config_path = repo_root / "demo" / "cv_recruiting_enterprise" / "project.yaml"
+
+    config = load_eval_config(Namespace(config=str(config_path)))
+
+    assert config.data.dataset_path is None
+    assert len(config.data.documents) == 3
+    assert len(config.data.extraction_fields) == 18
+    assert config.data.extraction_fields[0] == "candidate_identity"
+    assert config.data.extraction_fields[-1] == "compensation_mobility"
+    assert config.hybrid.enabled is True
+    assert config.hybrid.schema_path == "demo/cv_recruiting_enterprise/schema/cv_extraction_output.schema.json"
