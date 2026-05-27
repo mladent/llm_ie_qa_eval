@@ -268,6 +268,40 @@ Outputs written to `outputs/experiments/<experiment-id>/`:
 - `phase8_analysis.json` and Phase 8 table CSVs
 - `hybrid_component_trends.csv`, `hybrid_path_breakdown.csv` (if hybrid enabled)
 
+### Export per-CV inspection artifacts
+
+For manual QA and schema iteration, use the helper script to export one JSON file per run
+for specific CVs, plus overview tables with field counts, status breakdowns, and nested path stats.
+
+Script:
+
+```bash
+python scripts/export_run_inspection.py \
+   --experiment-dir outputs/experiments/<experiment-id> \
+   --schema-json demo/cv_recruiting_enterprise/schema/cv_extraction_output.schema.json \
+   --gold-dir demo/cv_recruiting_enterprise/gold \
+   --document-id cv-002 \
+   --out-dir /tmp/cv002_inspection \
+   --include-raw
+```
+
+Makefile shortcut:
+
+```bash
+make inspect-runs \
+   EXPERIMENT_DIR=outputs/experiments/<experiment-id> \
+   DOCUMENT_ID=cv-002 \
+   INSPECTION_OUT_DIR=/tmp/cv002_inspection
+```
+
+Main generated files:
+- `selected_runs.jsonl`: filtered run rows used for the export
+- `overview_runs.csv`: run-level metrics and field counts
+- `overview_fields.csv`: field-level value counts per run
+- `nested_path_stats.csv`: observed JSON paths and value types
+- `overview_summary.json`: parse-status summary and per-document statistics
+- `<document-id>/run_###.json`: detailed per-run payloads for direct inspection
+
 ## MLflow tracking and UI
 
 MLflow is included in the core dependency set. The default tracking store is
