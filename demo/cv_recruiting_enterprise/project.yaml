@@ -1,0 +1,80 @@
+experiment:
+  name: "cv-recruiting-enterprise-demo"
+  seed: 42
+  output_dir: "outputs"
+  num_runs: 5
+
+data:
+  prompt_path: "demo/cv_recruiting_enterprise/prompts/cv_extraction_enterprise.txt"
+  prompt_id: "cv-recruiting-enterprise-v1"
+  extraction_fields:
+    - "candidate_identity"
+    - "profile_summary"
+    - "total_experience_years"
+    - "target_roles"
+    - "core_skills"
+    - "skill_depth_matrix"
+    - "tools_platforms"
+    - "cloud_devops"
+    - "ai_ml_specializations"
+    - "domain_experience"
+    - "leadership_management"
+    - "project_achievements"
+    - "education"
+    - "certifications"
+    - "languages"
+    - "soft_skills"
+    - "recruiting_signals"
+    - "compensation_mobility"
+  documents:
+    - id: "cv-001"
+      document_path: "demo/cv_recruiting_enterprise/cvs/cv_001_senior_data_scientist.txt"
+      gold_path: "demo/cv_recruiting_enterprise/gold/cv_001_senior_data_scientist.json"
+    - id: "cv-002"
+      document_path: "demo/cv_recruiting_enterprise/cvs/cv_002_engineering_manager.txt"
+      gold_path: "demo/cv_recruiting_enterprise/gold/cv_002_engineering_manager.json"
+    - id: "cv-003"
+      document_path: "demo/cv_recruiting_enterprise/cvs/cv_003_ai_product_engineer.txt"
+      gold_path: "demo/cv_recruiting_enterprise/gold/cv_003_ai_product_engineer.json"
+
+model:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.2
+  top_p: 1.0
+  max_tokens: 2048
+
+execution:
+  max_retries: 3
+  retry_backoff_seconds: 2
+  timeout_seconds: 60
+  continue_on_error: true
+
+tracking:
+  enable_mlflow: true
+  tracking_uri: "sqlite:///mlflow.db"
+  tags:
+    project: "llm_ie_qa_eval"
+    corpus: "cv-recruiting-enterprise-demo"
+
+exports:
+  write_jsonl: true
+  write_csv: true
+  write_parquet: true
+
+hybrid:
+  enabled: true
+  schema_path: "demo/cv_recruiting_enterprise/schema/cv_extraction_output.schema.json"
+  rubric_path: "config/hybrid_scoring.yaml"
+  parse_error_behavior: "force_zero"
+  path_syntax: "jsonpath"
+  unknown_field_policy:
+    mode: "penalize"
+    penalty_weight: 0.1
+  array_matching:
+    fallback_strategy: "best_overlap"
+  schema_scoring:
+    required_weight: 0.4
+    type_weight: 0.3
+    enum_weight: 0.2
+    additional_properties_weight: 0.1

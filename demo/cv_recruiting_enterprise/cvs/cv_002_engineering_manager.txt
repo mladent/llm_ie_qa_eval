@@ -1,0 +1,71 @@
+Name: Martin Alvarez
+Headline: Engineering Manager | Data and ML Platforms | Delivery and People Leadership
+Location: Madrid, Spain
+Contact: martin.alvarez@example.com | +34-91-555-0144 | linkedin.com/in/martinalvarez
+
+Professional Summary
+Engineering manager with 13 years of experience across platform engineering, data infrastructure, and ML product delivery. I lead multi-disciplinary teams, improve execution quality, and build hiring and coaching systems that scale.
+
+Target Roles
+- Engineering Manager (Data Platform)
+- Senior Engineering Manager (ML Infrastructure)
+- Director of Engineering (Data and AI)
+
+Core Skills
+- Engineering leadership, roadmap planning, capacity management
+- Python, Go, SQL
+- Distributed systems, event streaming, workflow orchestration
+- Kubernetes, Docker, Terraform, AWS and GCP
+- Observability, SLO design, incident management
+
+Professional Experience
+
+Engineering Manager - Helios Commerce Tech, Madrid
+May 2020 - Present
+- Managed 3 squads (9 engineers total) across data platform and ML enablement.
+- Introduced quarterly planning framework with explicit risk registers and dependency tracking.
+- Improved release predictability from 62% to 89% on-time delivery over 4 quarters.
+- Partnered with product and analytics leaders to prioritize recommendation API reliability and latency goals.
+- Led hiring loop redesign that reduced time-to-hire from 56 days to 34 days.
+
+Senior Staff Engineer (acting manager) - Orbital Media Systems, Barcelona
+Feb 2016 - Apr 2020
+- Built event-driven ingestion platform processing 1.4B events/day.
+- Implemented autoscaling and cost controls that reduced infrastructure spend by 19%.
+- Mentored senior engineers and ran architecture review forums.
+
+Software Engineer - Iberia Data Solutions, Valencia
+Sep 2012 - Jan 2016
+- Developed backend services for analytics and reporting.
+- Migrated monolithic ETL jobs to orchestrated pipelines.
+
+Selected Projects and Impact
+- Recommendation platform reliability initiative: improved API p95 latency by 37% and reduced weekly incidents by 46%.
+- On-call excellence program: reduced MTTR from 98 minutes to 41 minutes.
+- Team growth and retention: promoted 5 engineers to senior levels over 2 years, voluntary attrition below 6%.
+
+Education
+MSc in Software Engineering, Universidad Politecnica de Madrid, 2012
+BSc in Computer Engineering, Universidad de Granada, 2010
+
+Certifications
+- Google Professional Cloud Architect
+- AWS Certified Solutions Architect - Professional
+- Certified Kubernetes Administrator (CKA)
+
+Languages
+- Spanish (Native)
+- English (C1)
+- Portuguese (B2)
+
+Soft Skills
+- Coaching and feedback culture
+- Conflict resolution
+- Executive communication
+- Decision-making under uncertainty
+
+Recruiting and Mobility
+- Work authorization: Spain and EU
+- Notice period: 1 month
+- Preferred setup: hybrid in Madrid; open to relocation within EU for director-level scope
+- Compensation expectation: 135k-165k EUR total cash, depending on scope

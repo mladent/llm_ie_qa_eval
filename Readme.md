@@ -209,6 +209,22 @@ Use a single project YAML file as the source of truth for the run. A sample is a
 python run_evaluation.py --config config/project_eval_example.yaml
 ```
 
+Enterprise CV recruiting demo project:
+
+```bash
+python run_evaluation.py --config demo/cv_recruiting_enterprise/project.yaml
+```
+
+This demo intentionally encodes complex recruiting details (for example years of experience,
+skill depth, leadership scope, and mobility constraints) as structured strings because the
+current evaluator contract expects each extraction field to be a list of strings.
+
+Contract note for contributors:
+
+- The demo supports two valid workflows: source-faithful extraction and normalized canonical profiles.
+- Mixing both styles across prompt and gold files lowers overlap metrics even when extraction quality is strong.
+- For policy details and field-mapping rules, see PRD section "11.7 CV Recruiting Demo Extraction Contract and Gold Alignment".
+
 To scaffold a private local project from the `.local` template:
 
 ```bash
@@ -257,6 +273,40 @@ Outputs written to `outputs/experiments/<experiment-id>/`:
 - `provenance.json`, `config.json`
 - `phase8_analysis.json` and Phase 8 table CSVs
 - `hybrid_component_trends.csv`, `hybrid_path_breakdown.csv` (if hybrid enabled)
+
+### Export per-CV inspection artifacts
+
+For manual QA and schema iteration, use the helper script to export one JSON file per run
+for specific CVs, plus overview tables with field counts, status breakdowns, and nested path stats.
+
+Script:
+
+```bash
+python scripts/export_run_inspection.py \
+   --experiment-dir outputs/experiments/<experiment-id> \
+   --schema-json demo/cv_recruiting_enterprise/schema/cv_extraction_output.schema.json \
+   --gold-dir demo/cv_recruiting_enterprise/gold \
+   --document-id cv-002 \
+   --out-dir .local/tmp/cv002_inspection \
+   --include-raw
+```
+
+Makefile shortcut:
+
+```bash
+make inspect-runs \
+   EXPERIMENT_DIR=outputs/experiments/<experiment-id> \
+   DOCUMENT_ID=cv-002 \
+   INSPECTION_OUT_DIR=.local/tmp/cv002_inspection
+```
+
+Main generated files:
+- `selected_runs.jsonl`: filtered run rows used for the export
+- `overview_runs.csv`: run-level metrics and field counts
+- `overview_fields.csv`: field-level value counts per run
+- `nested_path_stats.csv`: observed JSON paths and value types
+- `overview_summary.json`: parse-status summary and per-document statistics
+- `<document-id>/run_###.json`: detailed per-run payloads for direct inspection
 
 ## MLflow tracking and UI
 

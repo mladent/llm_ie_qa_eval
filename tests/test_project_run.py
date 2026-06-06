@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from argparse import Namespace
 import json
 from pathlib import Path
 
 import pytest
 
+from config_loader import load_eval_config
 import run_evaluation
 
 
@@ -160,3 +162,20 @@ def test_project_config_run_writes_manifest_and_logs_project_params(
     assert tracker.global_params["input_mode"] == "project"
     assert tracker.global_params["document_count"] == 1
     assert tracker.global_params["project_config_path"] == str(config_path.resolve())
+
+
+def test_runtime_dataset_loading_for_committed_cv_demo_project() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    config_path = repo_root / "demo" / "cv_recruiting_enterprise" / "project.yaml"
+
+    config = load_eval_config(Namespace(config=str(config_path)))
+    dataset, runtime_input = run_evaluation._load_runtime_dataset(config)
+
+    assert len(dataset) == 3
+    assert runtime_input["input_mode"] == "project"
+    assert runtime_input["document_count"] == 3
+    assert len(runtime_input["extraction_fields"]) == 18
+    assert runtime_input["extraction_fields"][0] == "candidate_identity"
+    assert runtime_input["extraction_fields"][-1] == "compensation_mobility"
+    assert runtime_input["project_manifest"] is not None
+    assert len(runtime_input["project_manifest"]["documents"]) == 3
