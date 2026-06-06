@@ -219,6 +219,12 @@ This demo intentionally encodes complex recruiting details (for example years of
 skill depth, leadership scope, and mobility constraints) as structured strings because the
 current evaluator contract expects each extraction field to be a list of strings.
 
+Contract note for contributors:
+
+- The demo supports two valid workflows: source-faithful extraction and normalized canonical profiles.
+- Mixing both styles across prompt and gold files lowers overlap metrics even when extraction quality is strong.
+- For policy details and field-mapping rules, see PRD section "11.7 CV Recruiting Demo Extraction Contract and Gold Alignment".
+
 To scaffold a private local project from the `.local` template:
 
 ```bash

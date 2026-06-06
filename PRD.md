@@ -1285,6 +1285,46 @@ Each `gold_path` file contains a JSON object matching the extraction target fiel
 }
 ```
 
+### 11.7 CV Recruiting Demo Extraction Contract and Gold Alignment
+
+The CV recruiting enterprise demo includes richer business semantics than strict schema
+validation can capture. To keep evaluation stable and reproducible, contributors must choose
+one output style per demo project and keep prompt and gold files aligned to that style.
+
+Accepted styles:
+
+1. Source-faithful extraction
+   - Preserve wording and granularity from CV text as much as possible.
+   - Use light normalization only (for example whitespace cleanup or consistent punctuation).
+2. Canonicalized profile extraction
+   - Normalize terms into a curated taxonomy and standardized phrasing.
+   - Allow controlled abstraction when consistently applied in all gold files.
+
+Important rule:
+
+- Do not mix source-faithful and canonicalized conventions across prompt instructions and gold artifacts in the same experiment.
+
+Field mapping policy for ambiguous recruiting fields:
+
+- candidate_identity:
+  - Define one convention and apply consistently across all gold files.
+  - Either compact identity string style or decomposed contact entries are valid, but not mixed.
+- recruiting_signals:
+  - Use for hiring/selection indicators (leadership signal, reliability signal, risk signal) only if this is explicitly chosen as project policy.
+- compensation_mobility:
+  - Use for compensation expectation, location preference, relocation, notice period, and work authorization when policy is extraction-faithful.
+
+Normalization policy (recommended for both styles):
+
+- Use deterministic casing and separator conventions.
+- Keep role naming consistent (for example with or without parentheses) across all documents.
+- Keep certification naming stable when abbreviations exist (for example CKA).
+
+Evaluation expectation:
+
+- Schema metrics can be high while lexical overlap remains modest if prompt and gold use different style contracts.
+- When overlap drift is observed with valid structure, first check contract alignment before changing scoring weights or model settings.
+
 ---
 
 ## 12. Developer Workflow & CLI Reference
