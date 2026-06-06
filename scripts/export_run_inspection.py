@@ -143,7 +143,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-dir", type=Path, help="Path to outputs/experiments/<exp-id>.")
     parser.add_argument("--runs-jsonl", type=Path, help="Path to runs.jsonl when experiment dir is not provided.")
     parser.add_argument("--schema-json", type=Path, required=True, help="Path to extraction schema JSON.")
-    parser.add_argument("--out-dir", type=Path, required=True, help="Output folder for inspection exports.")
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=Path(".local/tmp/run_inspection"),
+        help="Output folder for inspection exports (default: .local/tmp/run_inspection).",
+    )
     parser.add_argument(
         "--document-id",
         action="append",

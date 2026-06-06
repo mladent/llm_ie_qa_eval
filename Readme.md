@@ -281,7 +281,7 @@ python scripts/export_run_inspection.py \
    --schema-json demo/cv_recruiting_enterprise/schema/cv_extraction_output.schema.json \
    --gold-dir demo/cv_recruiting_enterprise/gold \
    --document-id cv-002 \
-   --out-dir /tmp/cv002_inspection \
+   --out-dir .local/tmp/cv002_inspection \
    --include-raw
 ```
 
@@ -291,7 +291,7 @@ Makefile shortcut:
 make inspect-runs \
    EXPERIMENT_DIR=outputs/experiments/<experiment-id> \
    DOCUMENT_ID=cv-002 \
-   INSPECTION_OUT_DIR=/tmp/cv002_inspection
+   INSPECTION_OUT_DIR=.local/tmp/cv002_inspection
 ```
 
 Main generated files:
