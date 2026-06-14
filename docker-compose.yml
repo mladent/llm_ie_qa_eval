@@ -1,0 +1,78 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: llm-ie-qa-eval:latest
+    env_file:
+      - .env
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - LIE_TRACKING_URI=sqlite:///mlruns/mlflow.db
+    command: ["python", "run_business_api.py", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./mlruns:/app/mlruns
+    restart: unless-stopped
+
+  eval:
+    image: llm-ie-qa-eval:latest
+    env_file:
+      - .env
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - LIE_TRACKING_URI=sqlite:///mlruns/mlflow.db
+    command:
+      [
+        "python",
+        "run_evaluation.py",
+        "--config",
+        "${EVAL_CONFIG:-demo/cv_recruiting_enterprise/project.yaml}",
+      ]
+    volumes:
+      - ./outputs:/app/outputs
+      - ./mlruns:/app/mlruns
+    profiles: ["jobs"]
+
+  business-eval:
+    image: llm-ie-qa-eval:latest
+    env_file:
+      - .env
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - LIE_TRACKING_URI=sqlite:///mlruns/mlflow.db
+    command:
+      [
+        "python",
+        "run_business_evaluation.py",
+        "--experiment-dir",
+        "${EXPERIMENT_DIR:-outputs/experiments/exp-your-id}",
+        "--scenario",
+        "${SCENARIO:-default}",
+      ]
+    volumes:
+      - ./outputs:/app/outputs
+      - ./mlruns:/app/mlruns
+    profiles: ["jobs"]
+
+  mlflow:
+    image: llm-ie-qa-eval:latest
+    user: "${UID:-1000}:${GID:-1000}"
+    command:
+      [
+        "mlflow",
+        "ui",
+        "--backend-store-uri",
+        "sqlite:///mlruns/mlflow.db",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000",
+      ]
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/app/mlruns
+    restart: unless-stopped
