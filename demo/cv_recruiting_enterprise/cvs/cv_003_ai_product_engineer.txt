@@ -1,0 +1,70 @@
+Name: Priya Nandakumar
+Headline: AI Product Engineer | Full-Stack Systems | LLM Features in Production
+Location: Amsterdam, Netherlands
+Contact: priya.nandakumar@example.com | +31-20-555-0177 | linkedin.com/in/priyanandakumar
+
+Professional Summary
+AI product engineer with 8 years of experience shipping user-facing intelligence features from concept to production. Strong blend of backend engineering, applied ML experimentation, and product thinking for measurable adoption and revenue impact.
+
+Target Roles
+- Senior AI Product Engineer
+- Staff Full-Stack ML Engineer
+- Applied AI Product Lead
+
+Core Skills
+- Python, TypeScript, SQL
+- FastAPI, Node.js, React, Next.js
+- LLM prompt design, evaluation pipelines, retrieval systems
+- Postgres, Redis, Elasticsearch
+- Docker, Kubernetes, CI/CD, feature flags, experimentation
+
+Professional Experience
+
+Senior AI Product Engineer - Brightlane SaaS, Amsterdam
+Jun 2022 - Present
+- Led end-to-end delivery of an AI assistant for customer support analytics.
+- Built retrieval and response-ranking stack integrating vector search and policy filters.
+- Increased weekly active usage of AI features from 18% to 47% in 6 months.
+- Partnered with design and customer success to improve trust UX and explanation quality.
+- Established evaluation harness with precision/recall and error taxonomy tracking.
+
+Product Engineer (ML) - Northbridge Workflow, Rotterdam
+Mar 2019 - May 2022
+- Shipped document classification and extraction flows for operations teams.
+- Reduced average case handling time by 31% with workflow automation.
+- Built observability dashboard for model quality and latency regressions.
+
+Software Engineer - Delta Apps, Eindhoven
+Aug 2017 - Feb 2019
+- Developed analytics APIs and UI dashboards.
+- Implemented automated test suites and deployment pipelines.
+
+Selected Projects and Impact
+- Renewal risk copilot: generated 2.1M EUR influenced ARR pipeline in first year.
+- Smart ticket triage: improved first-response accuracy by 22 percentage points.
+- Evaluation framework adoption: reduced model-related production regressions by 35%.
+
+Education
+MSc in Artificial Intelligence, University of Amsterdam, 2017
+BEng in Information Technology, Anna University, 2015
+
+Certifications
+- Microsoft Certified: Azure AI Engineer Associate
+- Professional Scrum Product Owner I
+
+Languages
+- English (C2)
+- Dutch (B1)
+- Tamil (Native)
+
+Soft Skills
+- Product prioritization
+- User empathy
+- Cross-functional collaboration
+- Clear technical writing
+
+Recruiting and Mobility
+- Work authorization: Netherlands highly skilled migrant visa
+- Notice period: 6 weeks
+- Preferred setup: hybrid in Amsterdam, open to remote-first EU teams
+- Compensation expectation: 105k-130k EUR base plus equity

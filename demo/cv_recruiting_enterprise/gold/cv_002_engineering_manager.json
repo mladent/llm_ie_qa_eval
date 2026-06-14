@@ -1,0 +1,102 @@
+{
+  "candidate_identity": [
+    "Martin Alvarez | Engineering Manager Data Platform | Madrid, Spain"
+  ],
+  "profile_summary": [
+    "Engineering manager with 13 years in platform engineering, data infrastructure, and ML delivery",
+    "Leads multi-squad execution with strong hiring, coaching, and operational excellence focus"
+  ],
+  "total_experience_years": [
+    "13"
+  ],
+  "target_roles": [
+    "Engineering Manager Data Platform",
+    "Senior Engineering Manager ML Infrastructure",
+    "Director of Engineering Data and AI"
+  ],
+  "core_skills": [
+    "Engineering leadership",
+    "Roadmap planning",
+    "Capacity management",
+    "Python",
+    "Go",
+    "SQL",
+    "Distributed systems",
+    "Event streaming",
+    "Incident management"
+  ],
+  "skill_depth_matrix": [
+    "Engineering leadership | 7 years | expert | managed multi-squad platform organizations",
+    "Distributed systems | 9 years | advanced | event-driven ingestion at large scale",
+    "Kubernetes | 6 years | advanced | reliability and autoscaling operations",
+    "Python | 10 years | advanced | platform tooling and workflow services",
+    "Cloud architecture | 8 years | advanced | AWS and GCP infrastructure design"
+  ],
+  "tools_platforms": [
+    "Kubernetes",
+    "Docker",
+    "Terraform",
+    "Workflow orchestration",
+    "Observability and SLO tooling"
+  ],
+  "cloud_devops": [
+    "AWS",
+    "GCP",
+    "Infrastructure as code",
+    "Autoscaling and cost governance",
+    "On-call operations design"
+  ],
+  "ai_ml_specializations": [
+    "ML platform enablement",
+    "Recommendation API reliability",
+    "Data platform support for model delivery"
+  ],
+  "domain_experience": [
+    "E-commerce technology",
+    "Media systems",
+    "Analytics infrastructure"
+  ],
+  "leadership_management": [
+    "Managed 3 squads and 9 engineers across platform and ML enablement",
+    "Redesigned hiring loop reducing time-to-hire from 56 to 34 days",
+    "Promoted 5 engineers to senior levels over 2 years"
+  ],
+  "project_achievements": [
+    "Improved on-time delivery from 62% to 89% over 4 quarters",
+    "Reduced recommendation API p95 latency by 37%",
+    "Reduced weekly incidents by 46% and MTTR from 98 to 41 minutes",
+    "Lowered infrastructure spend by 19% through autoscaling and controls"
+  ],
+  "education": [
+    "MSc Software Engineering | Universidad Politecnica de Madrid | 2012",
+    "BSc Computer Engineering | Universidad de Granada | 2010"
+  ],
+  "certifications": [
+    "Google Professional Cloud Architect",
+    "AWS Certified Solutions Architect - Professional",
+    "Certified Kubernetes Administrator"
+  ],
+  "languages": [
+    "Spanish Native",
+    "English C1",
+    "Portuguese B2"
+  ],
+  "soft_skills": [
+    "Coaching and feedback culture",
+    "Conflict resolution",
+    "Executive communication",
+    "Decision-making under uncertainty"
+  ],
+  "recruiting_signals": [
+    "Strong people leadership with measurable team-development outcomes",
+    "High operational maturity across reliability, SLOs, and incident response",
+    "Demonstrated cost optimization alongside delivery performance"
+  ],
+  "compensation_mobility": [
+    "Location preference: Madrid hybrid",
+    "Relocation: open within EU for director-level scope",
+    "Notice period: 1 month",
+    "Compensation expectation: 135k-165k EUR total cash",
+    "Work authorization: Spain and EU"
+  ]
+}

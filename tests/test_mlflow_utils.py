@@ -29,7 +29,7 @@ class FakeMLflow:
 
     def start_run(self, run_name):
         self.run_name = run_name
-        return SimpleNamespace(info=SimpleNamespace(run_id="run-123"))
+        return SimpleNamespace(info=SimpleNamespace(run_id="run-123", experiment_id="2"))
 
     def end_run(self):
         self.ended = True
@@ -189,6 +189,28 @@ def test_mlflow_tracker_start_and_log(monkeypatch, tmp_path: Path) -> None:
     corpus_metrics = fake.logged_metrics[-1][0]
     assert "corpus_std_precision" not in corpus_metrics
     assert "corpus_latency_std" not in corpus_metrics
+    assert corpus_metrics["corpus_std_recall"] == 0.1
+    assert corpus_metrics["corpus_cost_std"] == 0.0
+
+
+def test_mlflow_tracker_start_touches_experiment_timestamp(monkeypatch) -> None:
+    fake = FakeMLflow()
+    monkeypatch.setitem(sys.modules, "mlflow", fake)
+
+    tracker = MLflowTracker(
+        enabled=True,
+        tracking_uri="sqlite:///mlflow.db",
+        experiment_name="exp",
+        run_name="run",
+        tags={},
+    )
+
+    touched = []
+    monkeypatch.setattr(tracker, "_touch_experiment_last_update_time", touched.append)
+
+    tracker.start()
+
+    assert touched == ["2"]
 
 
 def test_mlflow_tracker_start_handles_import_error(monkeypatch) -> None:

@@ -1,0 +1,14 @@
+business_config_version: "1.0.0"
+rounding:
+  precision: 4
+readiness:
+  weights:
+    success: 0.35
+    stability: 0.2
+    quality: 0.25
+    risk: 0.12
+    critical: 0.08
+normalization:
+  expected_cost_per_1000_cap: 10000.0
+warnings:
+  soft_warning_margin: 0.01

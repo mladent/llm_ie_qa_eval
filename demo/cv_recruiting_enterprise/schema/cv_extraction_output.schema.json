@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CVRecruitingEnterpriseExtractionOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_identity": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "profile_summary": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "total_experience_years": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "target_roles": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "core_skills": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "skill_depth_matrix": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tools_platforms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cloud_devops": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ai_ml_specializations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "domain_experience": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "leadership_management": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "project_achievements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "education": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "certifications": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "languages": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "soft_skills": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "recruiting_signals": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "compensation_mobility": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "candidate_identity",
+    "profile_summary",
+    "total_experience_years",
+    "target_roles",
+    "core_skills",
+    "skill_depth_matrix",
+    "tools_platforms",
+    "cloud_devops",
+    "ai_ml_specializations",
+    "domain_experience",
+    "leadership_management",
+    "project_achievements",
+    "education",
+    "certifications",
+    "languages",
+    "soft_skills",
+    "recruiting_signals",
+    "compensation_mobility"
+  ]
+}

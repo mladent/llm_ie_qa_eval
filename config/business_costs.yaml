@@ -1,0 +1,9 @@
+business_config_version: "1.0.0"
+default:
+  parse_error: 10.0
+  runtime_error: 8.0
+  incorrect: 5.0
+refund_handling:
+  parse_error: 12.0
+  runtime_error: 10.0
+  incorrect: 7.0

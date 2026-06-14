@@ -9,6 +9,12 @@ Add a configurable hybrid JSON scoring layer that augments the current evaluatio
 
 This must remain backward-compatible with existing precision/recall/F1 outputs.
 
+## Verification Status (2026-04-18)
+- Plan execution status: Completed through Phase 6.
+- Code status: Required hybrid modules, runtime integration, persistence hooks, and docs are present.
+- Dependency status: `jsonschema`, `jsonpath-ng`, and `rapidfuzz` are present in `requirements.txt`.
+- Test verification: Re-ran the plan's focused/regression suite and all checks passed (`43 passed`).
+
 ## Confirmed Decisions
 - Keep current precision/recall/F1 behavior unchanged, and add hybrid outputs.
 - Use a dedicated JSON Schema file referenced from config.
@@ -286,6 +292,11 @@ Update requirements.txt with:
    - hybrid metrics appear in run and aggregate artifacts
    - parse errors yield hybrid_total_score = 0
    - MLflow includes hybrid metrics
+
+Status note:
+- Verified on 2026-04-18 with:
+   - `pytest tests/test_hybrid_schema.py tests/test_hybrid_comparators.py tests/test_hybrid_scoring.py tests/test_metrics.py tests/test_config_loader_branches.py tests/test_project_run.py tests/test_analysis_and_variance.py tests/test_mlflow_utils.py -q`
+   - Result: `43 passed`
 
 ## Suggested Rollout Strategy
 1. Implement Phases 1-2 behind config.enabled flag.

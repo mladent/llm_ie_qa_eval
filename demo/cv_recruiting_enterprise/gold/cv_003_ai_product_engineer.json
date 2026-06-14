@@ -1,0 +1,104 @@
+{
+  "candidate_identity": [
+    "Priya Nandakumar | Senior AI Product Engineer | Amsterdam, Netherlands"
+  ],
+  "profile_summary": [
+    "AI product engineer with 8 years shipping user-facing intelligence features",
+    "Blends backend engineering, applied ML evaluation, and product adoption ownership"
+  ],
+  "total_experience_years": [
+    "8"
+  ],
+  "target_roles": [
+    "Senior AI Product Engineer",
+    "Staff Full-Stack ML Engineer",
+    "Applied AI Product Lead"
+  ],
+  "core_skills": [
+    "Python",
+    "TypeScript",
+    "SQL",
+    "FastAPI",
+    "Node.js",
+    "React",
+    "Prompt design",
+    "Retrieval systems",
+    "Experimentation"
+  ],
+  "skill_depth_matrix": [
+    "Python | 8 years | advanced | backend APIs, evaluation tooling, data workflows",
+    "TypeScript | 6 years | advanced | full-stack product feature development",
+    "LLM prompt and retrieval design | 4 years | advanced | production AI assistant capabilities",
+    "FastAPI | 5 years | advanced | API services for AI-enabled applications",
+    "React and Next.js | 5 years | advanced | user-facing AI product interfaces"
+  ],
+  "tools_platforms": [
+    "FastAPI",
+    "Node.js",
+    "React",
+    "Next.js",
+    "Postgres",
+    "Redis",
+    "Elasticsearch",
+    "Feature flagging and experimentation"
+  ],
+  "cloud_devops": [
+    "Docker",
+    "Kubernetes",
+    "CI/CD pipelines",
+    "Production observability for latency and quality"
+  ],
+  "ai_ml_specializations": [
+    "LLM assistant delivery",
+    "Retrieval and response ranking",
+    "Prompt and policy alignment",
+    "Evaluation harness design",
+    "Error taxonomy analysis"
+  ],
+  "domain_experience": [
+    "SaaS customer support analytics",
+    "Workflow automation",
+    "Revenue operations intelligence"
+  ],
+  "leadership_management": [
+    "Led end-to-end delivery of AI assistant from concept to production",
+    "Partnered with design and customer success on trust and explainability UX"
+  ],
+  "project_achievements": [
+    "Increased AI feature weekly active usage from 18% to 47% in 6 months",
+    "Reduced case handling time by 31% via classification and extraction automation",
+    "Generated 2.1M EUR influenced ARR pipeline with renewal risk copilot",
+    "Reduced model-related production regressions by 35% through evaluation framework adoption"
+  ],
+  "education": [
+    "MSc Artificial Intelligence | University of Amsterdam | 2017",
+    "BEng Information Technology | Anna University | 2015"
+  ],
+  "certifications": [
+    "Microsoft Certified Azure AI Engineer Associate",
+    "Professional Scrum Product Owner I"
+  ],
+  "languages": [
+    "English C2",
+    "Dutch B1",
+    "Tamil Native"
+  ],
+  "soft_skills": [
+    "Product prioritization",
+    "User empathy",
+    "Cross-functional collaboration",
+    "Clear technical writing"
+  ],
+  "recruiting_signals": [
+    "Strong product-engineering bridge with measurable adoption outcomes",
+    "Demonstrated ownership of both model quality and user trust experience",
+    "Evidence of commercial impact linked to AI feature delivery"
+  ],
+  "compensation_mobility": [
+    "Location preference: Amsterdam hybrid",
+    "Remote: open to EU remote-first teams",
+    "Notice period: 6 weeks",
+    "Compensation expectation: 105k-130k EUR base plus equity",
+    "Work authorization: Netherlands highly skilled migrant visa"
+  ]
+}

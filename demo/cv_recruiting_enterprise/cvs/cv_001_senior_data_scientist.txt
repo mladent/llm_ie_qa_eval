@@ -1,0 +1,72 @@
+Name: Elena Markovic
+Headline: Senior Data Scientist | NLP and Recommendation Systems | Regulated Fintech
+Location: Berlin, Germany
+Contact: elena.markovic@example.com | +49-30-555-0192 | linkedin.com/in/elenamarkovic
+
+Professional Summary
+Senior data scientist with 11 years of experience building NLP and ranking systems in regulated financial products. I combine experimental rigor with production ownership, translating model improvements into measurable business outcomes and audit-ready documentation.
+
+Target Roles
+- Senior Data Scientist
+- Staff Machine Learning Engineer
+- Applied AI Lead
+
+Core Skills
+- Python, SQL, Scala
+- NLP, information extraction, retrieval-augmented generation
+- Feature engineering, model calibration, A/B testing
+- MLflow, Airflow, dbt, Spark
+- AWS (SageMaker, Lambda, ECS), Terraform, Docker, Kubernetes
+
+Professional Experience
+
+Principal Data Scientist - NordTrust Payments, Berlin
+Apr 2021 - Present
+- Led development of a multilingual document-intelligence pipeline for KYC and sanctions review.
+- Designed weak-supervision strategy that reduced manual annotation effort by 38%.
+- Shipped a production reranking model for alert triage that improved analyst precision from 0.61 to 0.79.
+- Partnered with legal and risk teams to implement model governance controls and drift review cadences.
+- Mentored 4 data scientists and established quarterly model-readiness reviews.
+
+Senior Data Scientist - Atlas Credit Analytics, Munich
+Jan 2017 - Mar 2021
+- Built transformer-based entity extraction and relation linking for credit memo analysis.
+- Reduced false positive case escalations by 27% via threshold optimization and policy-aware post-processing.
+- Introduced experiment tracking and model registry workflows in MLflow.
+- Implemented feature store patterns with dbt and Spark pipelines.
+
+Data Scientist - BlueRiver Insights, Vienna
+Jul 2014 - Dec 2016
+- Built churn and risk scoring models for subscription businesses.
+- Automated model monitoring dashboards and alerting using Python and SQL.
+- Coordinated data contracts with analytics engineering.
+
+Selected Projects and Impact
+- Fraud signal ranking: cut average investigator handling time by 23% and saved approximately 420k EUR annually.
+- KYC extraction quality program: increased end-to-end F1 by 0.14 while reducing schema errors through strict output contracts.
+- Model incident playbook: reduced mean-time-to-detection from 5 days to under 24 hours.
+
+Education
+MSc in Data Science, Technical University of Munich, 2014
+BSc in Computer Science, University of Belgrade, 2012
+
+Certifications
+- AWS Certified Machine Learning - Specialty
+- Professional Scrum Master I
+
+Languages
+- English (C2)
+- German (C1)
+- Serbian (Native)
+
+Soft Skills
+- Stakeholder communication with legal and compliance teams
+- Structured problem solving
+- Cross-functional facilitation
+- Mentoring and coaching
+
+Recruiting and Mobility
+- Work authorization: EU citizen
+- Notice period: 2 months
+- Preferred setup: hybrid in Berlin, open to quarterly travel within EU
+- Compensation expectation: 120k-140k EUR base plus performance bonus
