@@ -37,6 +37,7 @@ decision problem.
 - Architecture Overview
 - Pipeline Overview
 - Run the Platform
+- Docker workflow
 - MLflow tracking and UI
 - Run business evaluation from historical artifacts
 - Why these measures
@@ -199,6 +200,61 @@ Copy `.env-template` to `.env` and add your API keys:
 ```bash
 cp .env-template .env
 # Edit .env and set OPENAI_API_KEY and/or GEMINI_API_KEY
+```
+
+### Docker workflow
+
+The repository includes a unified Docker image and Compose orchestration for:
+
+- API runtime (`api` service)
+- evaluator job (`eval` service; Compose profile `jobs`)
+- business evaluation job (`business-eval` service; Compose profile `jobs`)
+- MLflow UI (`mlflow` service)
+
+Important:
+
+- MLflow remains SQLite-backed (`sqlite:///mlflow.db`) in this setup.
+- Artifacts and tracking state are persisted via bind mounts:
+   - `./outputs:/app/outputs`
+   - `./mlruns:/app/mlruns`
+   - `./mlflow.db:/app/mlflow.db`
+
+Build image:
+
+```bash
+docker compose build
+```
+
+Start API and MLflow UI:
+
+```bash
+docker compose up -d api mlflow
+```
+
+Run evaluation job (demo config by default):
+
+```bash
+docker compose --profile jobs run --rm eval
+```
+
+Run business evaluation job (set experiment and scenario):
+
+```bash
+EXPERIMENT_DIR=outputs/experiments/<experiment-id> \
+SCENARIO=default \
+docker compose --profile jobs run --rm business-eval
+```
+
+Access services:
+
+- API: `http://localhost:8000`
+- Browser UI: `http://localhost:8000/ui`
+- MLflow UI: `http://localhost:5000`
+
+Stop services:
+
+```bash
+docker compose down
 ```
 
 ### Run evaluation
