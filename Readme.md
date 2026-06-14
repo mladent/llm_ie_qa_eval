@@ -213,11 +213,11 @@ The repository includes a unified Docker image and Compose orchestration for:
 
 Important:
 
-- MLflow remains SQLite-backed (`sqlite:///mlflow.db`) in this setup.
+- MLflow remains SQLite-backed (`sqlite:///mlruns/mlflow.db`) in this setup.
 - Artifacts and tracking state are persisted via bind mounts:
    - `./outputs:/app/outputs`
    - `./mlruns:/app/mlruns`
-   - `./mlflow.db:/app/mlflow.db`
+- Compose runs services as host UID/GID (`UID:GID`) to avoid bind-mount write permission issues.
 
 Build image:
 

@@ -12,7 +12,7 @@
 
 Define and implement a production-like, repeatable container workflow for this repository, while preserving current behavior:
 - file-based artifacts under `outputs/`
-- MLflow tracking on SQLite (`sqlite:///mlflow.db`)
+- MLflow tracking on SQLite (`sqlite:///mlruns/mlflow.db`)
 - optional FastAPI runtime
 - CLI-based evaluation and business-evaluation jobs
 
@@ -33,7 +33,6 @@ This effort intentionally avoids backend migration to Postgres at this time.
 - Persist runtime state across runs:
   - `outputs/`
   - `mlruns/`
-  - `mlflow.db`
 - Add Docker usage documentation with commands and troubleshooting.
 
 ### 2.2 Out of Scope
@@ -58,6 +57,7 @@ This effort intentionally avoids backend migration to Postgres at this time.
   - `OPENAI_API_KEY`
   - `GEMINI_API_KEY`
 - MLflow default tracking URI: `sqlite:///mlflow.db`
+- MLflow container tracking URI: `sqlite:///mlruns/mlflow.db`
 - Relative paths are widely used in config and code, so container CWD must remain project root.
 
 ---
@@ -84,7 +84,6 @@ This effort intentionally avoids backend migration to Postgres at this time.
 - Persist and share across services:
   - `./outputs:/app/outputs`
   - `./mlruns:/app/mlruns`
-  - `./mlflow.db:/app/mlflow.db`
 
 ### FR-4: Environment Injection
 
@@ -111,6 +110,7 @@ This effort intentionally avoids backend migration to Postgres at this time.
 - Minimal intrusion: no change to core evaluation or business logic.
 - Clear separation of always-on services (API, MLflow UI) vs job services (eval, business-eval).
 - Secure-by-default guidance: do not bake secrets into images.
+- Linux host compatibility: run compose services with host UID/GID to prevent sqlite and artifact permission issues on bind mounts.
 
 ---
 
