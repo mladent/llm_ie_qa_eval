@@ -6,19 +6,24 @@ services:
     image: llm-ie-qa-eval:latest
     env_file:
       - .env
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - LIE_TRACKING_URI=sqlite:///mlruns/mlflow.db
     command: ["python", "run_business_api.py", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     volumes:
       - ./outputs:/app/outputs
       - ./mlruns:/app/mlruns
-      - ./mlflow.db:/app/mlflow.db
     restart: unless-stopped
 
   eval:
     image: llm-ie-qa-eval:latest
     env_file:
       - .env
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - LIE_TRACKING_URI=sqlite:///mlruns/mlflow.db
     command:
       [
         "python",
@@ -29,13 +34,15 @@ services:
     volumes:
       - ./outputs:/app/outputs
       - ./mlruns:/app/mlruns
-      - ./mlflow.db:/app/mlflow.db
     profiles: ["jobs"]
 
   business-eval:
     image: llm-ie-qa-eval:latest
     env_file:
       - .env
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - LIE_TRACKING_URI=sqlite:///mlruns/mlflow.db
     command:
       [
         "python",
@@ -48,17 +55,17 @@ services:
     volumes:
       - ./outputs:/app/outputs
       - ./mlruns:/app/mlruns
-      - ./mlflow.db:/app/mlflow.db
     profiles: ["jobs"]
 
   mlflow:
     image: llm-ie-qa-eval:latest
+    user: "${UID:-1000}:${GID:-1000}"
     command:
       [
         "mlflow",
         "ui",
         "--backend-store-uri",
-        "sqlite:///mlflow.db",
+        "sqlite:///mlruns/mlflow.db",
         "--host",
         "0.0.0.0",
         "--port",
@@ -68,5 +75,4 @@ services:
       - "5000:5000"
     volumes:
       - ./mlruns:/app/mlruns
-      - ./mlflow.db:/app/mlflow.db
     restart: unless-stopped
